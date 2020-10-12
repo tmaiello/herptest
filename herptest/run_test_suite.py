@@ -16,9 +16,10 @@ import string
 import logging
 
 from . import toolbox
+from . import VmWrapper
 from concurrent import futures
 
-VERSION = '0.9.9.2'
+VERSION = '0.9.9.3'
 
 cfg = argparse.Namespace()
 cfg.runtime = argparse.Namespace()
@@ -299,6 +300,11 @@ def main():
         toolbox.save_csv(summary_path, [[ "Student", "LMS ID", "Score" ]])
     except Exception as e:
         logging.info("Warning: couldn't open summary file for writing: [%s]" % summary_path)
+    
+    # Check if we are building a VM first
+    if cfg.build.is_vm == True:
+        # Create a new VM wrapper
+        vm = VmWrapper(cfg.build.vm_type)
 
     # Build the environment components (only need to do this once.)
     if cfg.build.framework_src and cfg.build.framework_bin:
