@@ -63,6 +63,9 @@ def build_project(source_root, build_root, build_cfg):
             os.makedirs(build_root)
         os.chdir(build_root)
 
+    if build_cfg.is_vm == True:
+        build_cfg.vm.make_vm()
+
     try:
         # Prepare to make substitutions to the prep / build commands if applicable.
         replacements = {key : value for key, value in build_cfg.__dict__.items() if not key in ['prep_cmd', 'compile_cmd']}
@@ -96,6 +99,7 @@ def build_project(source_root, build_root, build_cfg):
 def run_suite_tests(framework, subject, proj_settings):
     results = []
 
+    # TODO - figure out how to incorporate running VM tests
     # Run each project's tests.
     for project in proj_settings.projects:
         display_name, identifier, points = project
@@ -304,7 +308,13 @@ def main():
     # Check if we are building a VM first
     if cfg.build.is_vm == True:
         # Create a new VM wrapper
-        vm = VmWrapper(cfg.build.vm_type)
+        # TODO - udpate cfg.build to be cfg.build.vm.var
+        vm = VmWrapper(cfg.build.vm_type, cfg.build.vm_name, cfg.build.vm_snapshot, cfg.build.vm_ip, \
+            cfg.build.vm_port, cfg.build.vm_user, cfg.build.vm_pass)
+
+        # Start up the VM software (i.e. a VMWare host)
+        vm.start_vm()
+        cfg.build.vm = vm
 
     # Build the environment components (only need to do this once.)
     if cfg.build.framework_src and cfg.build.framework_bin:
