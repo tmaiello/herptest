@@ -1,0 +1,15 @@
+steps to set up gui environment:
+
+
+virtualenv venv
+source venv/bin/activate
+wget https://download.qt.io/development_releases/prebuilt/libclang/libclang-release_60-linux-Rhel7.2-gcc5.3-x86_64-clazy.7z
+7z x ./libclang-release_60-linux-Rhel7.2-gcc5.3-x86_64-clazy.7z
+export LLVM_INSTALL_DIR=$PWD/libclang
+pip install pyside2
+sudo apt install libxkbcommon-x11-0
+sudo apt install libxcb-icccm4
+sudo apt install libxcb-image0
+sudo apt install libxcb-keysyms1
+sudo apt install libxcb-render-util0
+sudo apt install libxcb-xfixes0
