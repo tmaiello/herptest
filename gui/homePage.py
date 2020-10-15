@@ -1,5 +1,5 @@
 from PySide2 import QtCore, QtWidgets, QtGui
-import os
+import os, subprocess
 
 class HomePage(QtWidgets.QWidget):
     def __init__(self):
@@ -8,6 +8,13 @@ class HomePage(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout()
         self.layout.setContentsMargins(10,30,10,10)
 
+        self.createProjectPicker()
+        self.createTestSuitePicker()
+        self.createTestOutputFields()
+
+        self.setLayout(self.layout)
+
+    def createProjectPicker(self):
         self.projectPicker = QtWidgets.QGridLayout()
         self.projectLabel = QtWidgets.QLabel("Path to folder containing projects:")
         self.projectLabel.setMaximumHeight(50)
@@ -23,6 +30,7 @@ class HomePage(QtWidgets.QWidget):
         self.layout.addLayout(self.projectPicker)
         self.layout.setAlignment(self.projectPicker, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
+    def createTestSuitePicker(self):
         self.testSuitePicker = QtWidgets.QGridLayout()
         self.testSuiteLabel = QtWidgets.QLabel("Path to folder containing test suite:")
         self.testSuiteLabel.setMaximumHeight(50)
@@ -38,14 +46,6 @@ class HomePage(QtWidgets.QWidget):
         self.layout.addLayout(self.testSuitePicker)
         self.layout.setAlignment(self.testSuitePicker, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
-
-        self.runTests = QtWidgets.QPushButton("Run tests")
-        self.runTests.setFixedHeight(50)
-        self.runTests.setFixedWidth(100)
-        self.layout.addWidget(self.runTests)
-        self.layout.setAlignment(self.runTests, QtCore.Qt.AlignBottom | QtCore.Qt.AlignRight)
-
-        self.setLayout(self.layout)
 
     def projectFilePicker(self):
         dialog = QtWidgets.QFileDialog(self)
@@ -66,3 +66,48 @@ class HomePage(QtWidgets.QWidget):
 
         if dialog.exec_():
             self.testSuitePath.setText(dialog.selectedFiles()[0])
+
+    def createTestOutputFields(self):
+        self.outputFields = QtWidgets.QVBoxLayout()
+        self.outputLabel = QtWidgets.QLabel("Test Output:")
+        self.outputLabel.setMaximumHeight(50)
+        self.outputFields.addWidget(self.outputLabel)
+
+        self.outputBox = QtWidgets.QPlainTextEdit()
+        self.outputBox.setReadOnly(True)
+        self.outputFields.addWidget(self.outputBox)
+        
+        self.runTests = QtWidgets.QPushButton("Run tests")
+        self.runTests.setFixedHeight(50)
+        self.runTests.setFixedWidth(100)
+        self.runTests.clicked.connect(self.runTestSuite)
+        self.outputFields.addWidget(self.runTests)
+        self.outputFields.setAlignment(self.runTests, QtCore.Qt.AlignBottom | QtCore.Qt.AlignRight)
+        self.layout.addLayout(self.outputFields)
+
+    def runTestSuite(self):
+        print("Running test suite from: \n" + self.testSuitePath.text())
+        print("on projects from: \n" + self.projectPath.text())
+
+        #TODO: linkage
+        command = ['ping', '-c 4', 'python.org']
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        
+        self.outputBox.clear()
+        self.outputBox.appendPlainText("$ " + " ".join(command))
+        self.outputBox.repaint()
+        while True:
+            output = process.stdout.readline()
+            #print(output.strip())
+            self.outputBox.appendPlainText(output.strip())
+            self.outputBox.repaint()
+            # Do something else
+            return_code = process.poll()
+            if return_code is not None:
+                # Process has finished, read rest of the output 
+                for output in process.stdout.readlines():
+                    #print(output.strip())
+                    self.outputBox.appendPlainText(output.strip())
+                    self.outputBox.repaint()
+                break
+        

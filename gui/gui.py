@@ -26,7 +26,7 @@ def main():
 
 
     window.setCentralWidget(tabContainer)
-    window.setWindowTitle("HerpTest")
+    window.setWindowTitle("PengTest")
 
     status = QtWidgets.QStatusBar()
     status.showMessage("HerpTest is currently in Alpha. Please support the development of HerpTest!")
@@ -40,9 +40,10 @@ def main():
     else:
         splash = createSplash()
         splash.show()
-        time.sleep(2)
+        time.sleep(1)
         window.show()
         splash.finish(window)
+
 
     sys.exit(app.exec_())
 
