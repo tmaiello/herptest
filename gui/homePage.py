@@ -14,6 +14,10 @@ class HomePage(QtWidgets.QWidget):
 
         self.setLayout(self.layout)
 
+    def setResultsFunction(self, raiseResultsTab, args):
+        self.raiseResultsTab = raiseResultsTab
+        self.raiseResultsTabArgs = args
+
     def createProjectPicker(self):
         self.projectPicker = QtWidgets.QGridLayout()
         self.projectLabel = QtWidgets.QLabel("Path to folder containing projects:")
@@ -46,7 +50,6 @@ class HomePage(QtWidgets.QWidget):
         self.layout.addLayout(self.testSuitePicker)
         self.layout.setAlignment(self.testSuitePicker, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
-
     def projectFilePicker(self):
         dialog = QtWidgets.QFileDialog(self)
         dialog.setFileMode(QtWidgets.QFileDialog.Directory)
@@ -75,19 +78,42 @@ class HomePage(QtWidgets.QWidget):
 
         self.outputBox = QtWidgets.QPlainTextEdit()
         self.outputBox.setReadOnly(True)
+        self.outputBox.setPlainText("No tests run yet!\nClick below to begin.")
         self.outputFields.addWidget(self.outputBox)
         
+        self.testButtons = QtWidgets.QHBoxLayout()
+        self.testButtons.addStretch(10)
+
         self.runTests = QtWidgets.QPushButton("Run tests")
         self.runTests.setFixedHeight(50)
         self.runTests.setFixedWidth(100)
         self.runTests.clicked.connect(self.runTestSuite)
-        self.outputFields.addWidget(self.runTests)
-        self.outputFields.setAlignment(self.runTests, QtCore.Qt.AlignBottom | QtCore.Qt.AlignRight)
+        self.testButtons.addWidget(self.runTests)
+        self.testButtons.setAlignment(self.runTests, QtCore.Qt.AlignBottom | QtCore.Qt.AlignRight)
+
+        self.showResults = QtWidgets.QPushButton("Open Results")
+        self.showResults.hide()
+        self.showResults.setFixedHeight(50)
+        self.showResults.setFixedWidth(100)
+        self.showResults.clicked.connect(self.switchToResults)
+        self.testButtons.addWidget(self.showResults)
+        self.testButtons.setAlignment(self.showResults, QtCore.Qt.AlignBottom | QtCore.Qt.AlignRight)
+        
+        self.outputFields.addLayout(self.testButtons)
         self.layout.addLayout(self.outputFields)
+
+    def hideResultsButton(self):
+        self.showResults.hide()
+    
+    def showResultsButton(self):
+        self.showResults.show()
+        self.testButtons.removeWidget(self.showResults)
+        self.testButtons.insertWidget(1,self.showResults)
 
     def runTestSuite(self):
         print("Running test suite from: \n" + self.testSuitePath.text())
         print("on projects from: \n" + self.projectPath.text())
+        self.hideResultsButton()
 
         #TODO: linkage
         command = ['ping', '-c 4', 'python.org']
@@ -110,4 +136,7 @@ class HomePage(QtWidgets.QWidget):
                     self.outputBox.appendPlainText(output.strip())
                     self.outputBox.repaint()
                 break
-        
+        self.showResultsButton()
+
+    def switchToResults(self):
+        self.raiseResultsTab(*self.raiseResultsTabArgs)
