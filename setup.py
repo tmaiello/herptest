@@ -9,7 +9,14 @@ setup(
     author='Jeremiah Blanchard',
     author_email='jjb@eng.ufl.edu',
     description='Test suite tools for instructors',
-    install_requires=[],
+    install_requires=[
+        'certifi',
+        'chardet',
+        'idna',
+        'python-dotenv',
+        'requests',
+        'urllib3'
+    ],
 
     entry_points =
     { 'console_scripts':
