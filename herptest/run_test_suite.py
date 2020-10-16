@@ -47,7 +47,7 @@ def parse_arguments():
 #    cfg.logformat = "[%(levelname)s] %(message)s"
 
 
-def build_project(source_root, build_root, build_cfg):
+def build_project(source_root, build_root, build_cfg, submission):
     result_error = None
     current_dir = os.getcwd()
 
@@ -64,7 +64,7 @@ def build_project(source_root, build_root, build_cfg):
         os.chdir(build_root)
 
     if build_cfg.is_vm == True:
-        build_cfg.vm.make_vm(source_root)
+        build_cfg.vm.make_vm(submission)
 
     try:
         # Prepare to make substitutions to the prep / build commands if applicable.
@@ -248,7 +248,7 @@ def prepare_and_test_submission(framework_context, submission):
 
     # Build the project.
     logging.info("Prepping / building project(s) for " + submission + "... ")
-    error = build_project(cfg.build.subject_src, cfg.build.subject_bin, cfg.build)
+    error = build_project(cfg.build.subject_src, cfg.build.subject_bin, cfg.build, submission)
     if error:
         logging.info("error building (see logs)... ")
         logging.error("Error prepping/building %s - %s: %s" % (submission, type(error).__name__, error))
@@ -320,7 +320,7 @@ def main():
     if cfg.build.framework_src and cfg.build.framework_bin:
         if cfg.build.prep_cmd or cfg.build.compile_cmd:
             logging.info("Prepping / building framework environment... ")
-            result_error = build_project(cfg.build.framework_src, cfg.build.framework_bin, cfg.build)
+            result_error = build_project(cfg.build.framework_src, cfg.build.framework_bin, cfg.build, "framework")
             if result_error:
                 logging.info("%s: %s\n" % (type(result_error).__name__, result_error))
                 return

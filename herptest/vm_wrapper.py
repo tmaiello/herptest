@@ -107,9 +107,10 @@ class VmWrapper:
         print("Shutting down post build...")
         self.graceful_shutdown()
 
-        print("Rebooting post build...")
-        self.vm.power_on()
-        time.sleep(VM_BOOT_TIME)
+        # TODO - uncomment once testing is able to be performed
+        # print("Rebooting post build...")
+        # self.vm.power_on()
+        # time.sleep(VM_BOOT_TIME)
 
     # Method to run tests, then shut down the VM once completed
     def run_tests(self, target):
