@@ -16,16 +16,15 @@ class TestSuiteCreator(QtWidgets.QWidget):
             self.outputTitle.setFixedHeight(30)
             self.inputText = QtWidgets.QPlainTextEdit()
             self.outputText = QtWidgets.QPlainTextEdit()
-            self.left.addWidget(self.outputTitle)
-            self.left.addWidget(self.outputText)
-            self.right.addWidget(self.inputTitle)
-            self.right.addWidget(self.inputText)
+            self.left.addWidget(self.inputTitle)
+            self.left.addWidget(self.inputText)
+            self.right.addWidget(self.outputTitle)
+            self.right.addWidget(self.outputText)
 
             self.layout.addLayout(self.left)
             self.layout.addLayout(self.right)
 
             self.setLayout(self.layout)
-
             self.name = name
             self.points = defaultTestValue
 

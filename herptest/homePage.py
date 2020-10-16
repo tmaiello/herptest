@@ -111,30 +111,37 @@ class HomePage(QtWidgets.QWidget):
         self.testButtons.insertWidget(1,self.showResults)
 
     def runTestSuite(self):
-        print("Running test suite from: \n" + self.testSuitePath.text())
-        print("on projects from: \n" + self.projectPath.text())
+        #print("Running test suite from: \n" + self.testSuitePath.text())
+        #print("on projects from: \n" + self.projectPath.text())
         self.hideResultsButton()
 
         #TODO: linkage
-        command = ['ping', '-c 4', 'python.org']
+        os.chdir(self.testSuitePath.text())
+        command = ['herp']
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         
         self.outputBox.clear()
         self.outputBox.appendPlainText("$ " + " ".join(command))
         self.outputBox.repaint()
+
         while True:
             output = process.stdout.readline()
-            #print(output.strip())
-            self.outputBox.appendPlainText(output.strip())
+            errorOutput = process.stderr.readline()            
+            self.outputBox.appendPlainText(output)
+            self.outputBox.appendPlainText(errorOutput)
             self.outputBox.repaint()
             # Do something else
             return_code = process.poll()
             if return_code is not None:
                 # Process has finished, read rest of the output 
                 for output in process.stdout.readlines():
-                    #print(output.strip())
                     self.outputBox.appendPlainText(output.strip())
                     self.outputBox.repaint()
+                #and error out!
+                for errorOutput in process.stderr.readlines():
+                    self.outputBox.appendPlainText(errorOutput.strip())
+                    self.outputBox.repaint()
+
                 break
         self.showResultsButton()
 

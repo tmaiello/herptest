@@ -198,9 +198,9 @@ followed by its arguments.
 
 To run the GUI from WSL2, VcXsrv should be running first.
 
-Some additional OS packages may be required:
+Some additional OS packages may be required (especially on stock distributions of WSL2):
 
-`sudo apt install libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xfixes0`
+`sudo apt install libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xfixes0 libxcb-xinerama0`
 
 Additionally, qtmake may require the following:
 
