@@ -16,7 +16,7 @@ import string
 import logging
 
 from . import toolbox
-from . import VmWrapper
+from .vm_wrapper import VmWrapper
 from concurrent import futures
 
 VERSION = '0.9.9.3'
@@ -64,7 +64,7 @@ def build_project(source_root, build_root, build_cfg):
         os.chdir(build_root)
 
     if build_cfg.is_vm == True:
-        build_cfg.vm.make_vm()
+        build_cfg.vm.make_vm(source_root)
 
     try:
         # Prepare to make substitutions to the prep / build commands if applicable.

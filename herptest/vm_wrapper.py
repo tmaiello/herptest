@@ -28,7 +28,7 @@ PAYLOAD_DIR = "submissions"
 RESULT_DIR = "result"
 BUILD_CMD = "build.sh"
 STAGE_CMD = "staging.sh"
-REM_PROJ_DIR = "/home/reptilian/p1_test_suite"
+REM_PROJ_DIR = "/home/reptilian/"
 REM_STAGING_DIR = REM_PROJ_DIR
 REM_PAYLOAD_DIR = REM_PROJ_DIR + "/payload"
 REM_RESULT_DIR = REM_PROJ_DIR + "/result"
@@ -56,12 +56,6 @@ class VmWrapper:
         self._port = port
         self._user = user
         self._passwd = passwd
-    
-    # TODO - do we need getters?
-    @property
-    def type(self):
-        # Defines the type of VM
-        return self._type
 
     # Method to start the VM software, only needs to be done once
     def start_vm(self):
@@ -91,26 +85,27 @@ class VmWrapper:
 
     # Method to send the necessary files over to reptilian, make the project, then reboot
     def make_vm(self, target):
+        self.boot_vm()
         # Connect to the remote server
         print("Connecting via SSH...")
-        ssh = loop_for_shell()
+        ssh = self.loop_for_shell()
         if not ssh:
             print("Error setting up SSH connection! Exiting...");
-            dirty_shutdown()
+            self.dirty_shutdown()
             return
 
         # Run the staging phase.
         print("Setting the stage for the payload...")
-        run_staging(ssh, target)
+        self.run_staging(ssh, target)
 
         # Run the build phase.
         print("Beginning build cycle...")
-        run_build(ssh, target)
+        self.run_build(ssh, target)
         ssh.close()
 
         # Reboot if needed
         print("Shutting down post build...")
-        graceful_shutdown()
+        self.graceful_shutdown()
 
         print("Rebooting post build...")
         self.vm.power_on()
@@ -118,10 +113,10 @@ class VmWrapper:
 
     # Method to run tests, then shut down the VM once completed
     def run_tests(self, target):
-        ssh = loop_for_shell()
+        ssh = self.loop_for_shell()
         if not ssh:
             print("Error setting up SSH connection! Exiting...");
-            dirty_shutdown()
+            self.dirty_shutdown()
             return
 
         # Run the test phase.
@@ -141,13 +136,13 @@ class VmWrapper:
                 print("Error: could not grab " + filename + " for target " + target + ". Skipping.")
 
         sftp.close()
-        write_to_file(gen_errors, RESULT_DIR + "/" + target + "/" + RUN_LOG + ERR_LOG)
+        self.write_to_file(gen_errors, RESULT_DIR + "/" + target + "/" + RUN_LOG + ERR_LOG)
 
         ssh.close()
 
         # Shut down the VM for this target
         print("Shutting down VM...")
-        dirty_shutdown()
+        self.dirty_shutdown()
     
     def loop_for_shell(self):
         ssh = paramiko.SSHClient()
@@ -157,7 +152,7 @@ class VmWrapper:
 
         while not(connected) and failures < MAX_RETRIES:
             try:
-                ssh.connect(self.host, username=self._user, password=self._passwd, port=self._port)
+                ssh.connect(self._ip, username=self._user, password=self._passwd, port=self._port)
                 connected = True
             except (socket.timeout, paramiko.ssh_exception.SSHException) as err:
                 print("Error connecting. Retrying...")
@@ -218,7 +213,7 @@ class VmWrapper:
             # Run the staging script
             ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(REM_STAGING_DIR + "/" + STAGE_CMD)
             build_errors.extend(ssh_stderr.readlines())
-            write_to_file(build_errors, RESULT_DIR + "/" + target + "/" + STAGING_LOG + ERR_LOG)
+            self.write_to_file(build_errors, RESULT_DIR + "/" + target + "/" + STAGING_LOG + ERR_LOG)
         
     def run_build(self, ssh, target):
         # Push files via SFTP.
@@ -245,4 +240,4 @@ class VmWrapper:
         print("Build complete. Fetching logs.")
         sftp.get(REM_RESULT_DIR + "/" + BUILD_LOG, RESULT_DIR + "/" + target + "/" + BUILD_LOG)
         sftp.close()
-        write_to_file(build_errors, RESULT_DIR + "/" + target + "/" + BUILD_LOG + ERR_LOG)
+        self.write_to_file(build_errors, RESULT_DIR + "/" + target + "/" + BUILD_LOG + ERR_LOG)
