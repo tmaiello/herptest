@@ -200,3 +200,18 @@ To build package:
 
 To upload:
 `python3 -m twine upload dist/*`
+
+## Building & Running GUI
+
+To run the GUI from WSL2, VcXsrv should be running first, then run:
+`python3 gui/gui.py`
+
+Some additional OS packages may be required:
+
+`sudo apt install libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xfixes0`
+
+Additionally, qtmake may require the following:
+
+`wget https://download.qt.io/development_releases/prebuilt/libclang/libclang-release_60-linux-Rhel7.2-gcc5.3-x86_64-clazy.7z`
+`7z x ./libclang-release_60-linux-Rhel7.2-gcc5.3-x86_64-clazy.7z`
+`export LLVM_INSTALL_DIR=$PWD/libclang`
