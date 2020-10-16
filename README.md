@@ -11,11 +11,12 @@ Team Peng - CIS 4930 - Python Term Project
 
 This test suite it built to facilitate testing of student projects by teachers according to a predefined specification.
 
-This package includes three primary tools:
+This package includes four primary tools:
 
 - `herptest.toolbox`, which contains standardized / cross-platform function calls (currently only library loading)
 - `elma`, a command line tool to extract student submissions: (E)xtract (LM)S (A)rchive. Support is limited to Canvas. 
 - `herp`, a command line tool to run a project test suite as specified by the user.
+- `peng-gui`, a graphical interface built on top of the other command-line tools in this package
 
 
 ## HerpTest Toolbox (`herptest.toolbox`)
@@ -193,18 +194,9 @@ Command to be used to compile the build (e.g., make or devenv). This is a list o
 followed by its arguments.
 
 
-## Building this Package
+## Building & Running Graphical Interface (`peng-gui`)
 
-To build package:
-`python3 setup.py sdist bdist_wheel`
-
-To upload:
-`python3 -m twine upload dist/*`
-
-## Building & Running GUI
-
-To run the GUI from WSL2, VcXsrv should be running first, then run:
-`python3 gui/gui.py`
+To run the GUI from WSL2, VcXsrv should be running first.
 
 Some additional OS packages may be required:
 
@@ -215,3 +207,12 @@ Additionally, qtmake may require the following:
 `wget https://download.qt.io/development_releases/prebuilt/libclang/libclang-release_60-linux-Rhel7.2-gcc5.3-x86_64-clazy.7z`
 `7z x ./libclang-release_60-linux-Rhel7.2-gcc5.3-x86_64-clazy.7z`
 `export LLVM_INSTALL_DIR=$PWD/libclang`
+
+## Building this Package
+
+To build package:
+`python3 setup.py sdist bdist_wheel`
+
+To upload:
+`python3 -m twine upload dist/*`
+
