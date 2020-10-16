@@ -9,7 +9,9 @@ setup(
     author='Jeremiah Blanchard',
     author_email='jjb@eng.ufl.edu',
     description='Test suite tools for instructors',
-    install_requires=[],
+    install_requires=[
+        'canvasapi'
+    ],
 
     entry_points =
     { 'console_scripts':
