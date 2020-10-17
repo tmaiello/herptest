@@ -63,8 +63,8 @@ def build_project(source_root, build_root, build_cfg, submission):
             os.makedirs(build_root)
         os.chdir(build_root)
 
-    if build_cfg.is_vm == True:
-        build_cfg.vm.make_vm(submission)
+    if build_cfg.vm.is_vm == True:
+        build_cfg.vm_inst.make_vm(submission)
 
     try:
         # Prepare to make substitutions to the prep / build commands if applicable.
@@ -306,15 +306,13 @@ def main():
         logging.info("Warning: couldn't open summary file for writing: [%s]" % summary_path)
     
     # Check if we are building a VM first
-    if cfg.build.is_vm == True:
+    if cfg.build.vm.is_vm == True:
         # Create a new VM wrapper
-        # TODO - udpate cfg.build to be cfg.build.vm.var
-        vm = VmWrapper(cfg.build.vm_type, cfg.build.vm_name, cfg.build.vm_snapshot, cfg.build.vm_ip, \
-            cfg.build.vm_port, cfg.build.vm_user, cfg.build.vm_pass)
+        vm = VmWrapper(cfg.build.vm)
 
         # Start up the VM software (i.e. a VMWare host)
         vm.start_vm()
-        cfg.build.vm = vm
+        cfg.build.vm_inst = vm
 
     # Build the environment components (only need to do this once.)
     if cfg.build.framework_src and cfg.build.framework_bin:

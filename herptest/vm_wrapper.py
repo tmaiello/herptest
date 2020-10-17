@@ -12,26 +12,9 @@ import paramiko.ssh_exception
 import socket
 import subprocess
 
-# TODO - should these be added as a config option?
-VM_BOOT_TIME = 70
 MAX_RETRIES  = 10
 VM_SLEEP_TIME = 10
 ADB = "adb"
-
-# Project information
-STAGING_FILES = [ "staging.sh", "staging.tgz" ]
-# TODO - make sure this is the right name, add as config
-PAYLOAD_FILES = [ "processlog.tar.gz", "p1.diff" ]
-RESULT_FILES = [ "run.log", "result.log" ]
-STAGING_DIR = "staging"
-PAYLOAD_DIR = "submissions"
-RESULT_DIR = "result"
-BUILD_CMD = "build.sh"
-STAGE_CMD = "staging.sh"
-REM_PROJ_DIR = "/home/reptilian/"
-REM_STAGING_DIR = REM_PROJ_DIR
-REM_PAYLOAD_DIR = REM_PROJ_DIR + "/payload"
-REM_RESULT_DIR = REM_PROJ_DIR + "/result"
 
 # Log information
 BUILD_LOG = "build.log"
@@ -41,21 +24,35 @@ RESULT_LOG = "result.log"
 STAGING_LOG = "staging.log"
 
 class VmWrapper:
-    # TODO - update to only pass cfg.build.vm, then pull vars off that
-    def __init__(self, type, name, snapshot, ip, port, user, passwd):
+    def __init__(self, settings):
         # Currently only supports VMWare and VirtualBox
-        if type == "VMWare" or type == "VirtualBox":
-            self._type = type
+        if settings.type == "VMWare" or settings.type == "VirtualBox":
+            self._type = settings.type
         else:
             # TODO - make this more robust
             print("Unsupported VM type!")
             return
-        self._name = name
-        self._snapshot = snapshot
-        self._ip = ip
-        self._port = port
-        self._user = user
-        self._passwd = passwd
+        
+        # Setup other settings
+        self._name = settings.name
+        self._snapshot = settings.snapshot
+        self._ip = settings.ip
+        self._port = settings.port
+        self._user = settings.user
+        self._passwd = settings.passwd
+        self._boot_time = settings.boot_time
+        self._staging_files = settings.staging_files
+        self._payload_files = settings.payload_files
+        self._result_files = settings.result_files
+        self._staging_dir = settings.staging_dir
+        self._payload_dir = settings.payload_dir
+        self._result_dir = settings.result_dir
+        self._build_cmd = settings.build_cmd
+        self._stage_cmd = settings.stage_cmd
+        self._remote_proj_dir = settings.remote_proj_dir
+        self._remote_staging_dir = settings.remote_staging_dir
+        self._remote_payload_dir = settings.remote_payload_dir
+        self._remote_result_dir = settings.remote_result_dir
 
     # Method to start the VM software, only needs to be done once
     def start_vm(self):
@@ -81,7 +78,7 @@ class VmWrapper:
             self.vm.snapshot_revert(snapshot=snapshot)
 
         self.vm.power_on()
-        time.sleep(VM_BOOT_TIME)
+        time.sleep(self._boot_time)
 
     # Method to send the necessary files over to reptilian, make the project, then reboot
     def make_vm(self, target):
@@ -105,7 +102,7 @@ class VmWrapper:
 
         # Reboot if needed
         print("Shutting down post build...")
-        self.graceful_shutdown()
+        self.dirty_shutdown()
 
         # TODO - uncomment once testing is able to be performed
         # print("Rebooting post build...")
@@ -124,20 +121,20 @@ class VmWrapper:
         print("Beginning test cycle...")
 
         # Limit to 2 min test
-        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(REM_STAGING_DIR + "/" + 'run.sh', timeout=120000)
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(self._remote_staging_dir + "/" + 'run.sh', timeout=120000)
         time.sleep(2)
         gen_errors = ssh_stderr.readlines()
         print("Tests complete. Fetching results.")
         sftp = ssh.open_sftp()
-        for filename in RESULT_FILES:
+        for filename in self._result_files:
             print("Getting " + filename + "...")
             try:
-                sftp.get(REM_RESULT_DIR + "/" + filename, RESULT_DIR + "/" + target + "/" + filename)
+                sftp.get(self._remote_result_dir + "/" + filename, self._result_dir + "/" + target + "/" + filename)
             except:
                 print("Error: could not grab " + filename + " for target " + target + ". Skipping.")
 
         sftp.close()
-        self.write_to_file(gen_errors, RESULT_DIR + "/" + target + "/" + RUN_LOG + ERR_LOG)
+        self.write_to_file(gen_errors, self._result_dir + "/" + target + "/" + RUN_LOG + ERR_LOG)
 
         ssh.close()
 
@@ -170,6 +167,7 @@ class VmWrapper:
     
     def graceful_shutdown(self):
         # Make sure we are connected with ADB
+        # TODO - ADB is broken, investigate
         subprocess.call([ ADB, "connect", self._name ])
         # Send the shutdown signal via ADB and wait for the machine to finish
         subprocess.call([ ADB, "shell", "su -c 'svc power shutdown'" ])
@@ -184,61 +182,65 @@ class VmWrapper:
     
     def run_staging(self, ssh, target):
         # Make sure the directory is there for staging.
-        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command("mkdir " + REM_STAGING_DIR) # Make staging dir
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command("mkdir " + self._remote_staging_dir)
         build_errors = ssh_stderr.readlines()
 
         # Push files via SFTP.
         sftp = ssh.open_sftp()
 
-        for filename in STAGING_FILES:
-            if not os.path.isfile(STAGING_DIR + "/" + filename):
+        for filename in self._staging_files:
+            if not os.path.isfile(self._staging_dir + "/" + filename):
                 print("Error - file " + filename + " does not exist in staging area. Skipping.")
                 continue
 
             print("Pushing " + filename + "...")
             try:
-                sftp.put(STAGING_DIR + "/" + filename, REM_STAGING_DIR + "/" + filename)
+                sftp.put(self._staging_dir + "/" + filename, self._remote_staging_dir + "/" + filename)
             except:
                 print("Error: could not upload " + filename + ".")
-            sftp.close()
+                self.dirty_shutdown()
 
-            # Run the staging script.
-            print("Running staging script...");
-            time.sleep(2)
+        sftp.close()
 
-            # Make the script executable
-            build_errors.extend(ssh_stderr.readlines())
-            ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command("chmod +x " + REM_STAGING_DIR + "/" + STAGE_CMD)
-            time.sleep(2)
+        # Run the staging script.
+        print("Running staging script...");
+        time.sleep(2)
 
-            # Run the staging script
-            ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(REM_STAGING_DIR + "/" + STAGE_CMD)
-            build_errors.extend(ssh_stderr.readlines())
-            self.write_to_file(build_errors, RESULT_DIR + "/" + target + "/" + STAGING_LOG + ERR_LOG)
+        # Make the script executable
+        build_errors.extend(ssh_stderr.readlines())
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command("chmod +x " + self._remote_staging_dir + "/" + self._stage_cmd)
+        time.sleep(2)
+
+        # Run the staging script
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(self._remote_staging_dir + "/" + self._stage_cmd)
+        build_errors.extend(ssh_stderr.readlines())
+        self.write_to_file(build_errors, self._result_dir + "/" + target + "/" + STAGING_LOG + ERR_LOG)
         
     def run_build(self, ssh, target):
         # Push files via SFTP.
         sftp = ssh.open_sftp()
 
-        for filename in PAYLOAD_FILES:
-            if not os.path.isfile(PAYLOAD_DIR + "/" + target + "/" + filename):
+        for filename in self._payload_files:
+            if not os.path.isfile(self._payload_dir + "/" + target + "/" + filename):
                 print("Error - file " + filename + " does not exist in payload area for target " + target + ". Skipping.")
                 continue
 
             print("Pushing " + filename + "...")
             try:
-                sftp.put(PAYLOAD_DIR + "/" + target + "/" + filename, REM_PAYLOAD_DIR + "/" + filename)
+                sftp.put(self._payload_dir + "/" + target + "/" + filename, self._remote_payload_dir + "/" + filename)
             except:
                 print("Error: could not upload " + filename + ".")
 
         # Run the build script; power down when completed.
         print("Executing build....")
         # Limit to 20 min build
-        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(REM_STAGING_DIR + "/" + BUILD_CMD, timeout=1200000)
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command("chmod +x " + self._remote_payload_dir + "/" + self._build_cmd)
+        time.sleep(2)
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(self._remote_payload_dir + "/" + self._build_cmd, timeout=1200000)
         time.sleep(2)
         build_errors = ssh_stderr.readlines()
 
         print("Build complete. Fetching logs.")
-        sftp.get(REM_RESULT_DIR + "/" + BUILD_LOG, RESULT_DIR + "/" + target + "/" + BUILD_LOG)
+        sftp.get(self._remote_result_dir + "/" + BUILD_LOG, self._result_dir + "/" + target + "/" + BUILD_LOG)
         sftp.close()
-        self.write_to_file(build_errors, RESULT_DIR + "/" + target + "/" + BUILD_LOG + ERR_LOG)
+        self.write_to_file(build_errors, self._result_dir + "/" + target + "/" + BUILD_LOG + ERR_LOG)
