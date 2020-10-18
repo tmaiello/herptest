@@ -48,10 +48,10 @@ class Student:
 
 
 class CanvasUtil:
-    def __init__(self):
-        self.canvas_api_url = "https://ufl.beta.instructure.com/api/v1"
-        load_dotenv("canvas.env")  # load token from .env file
-        self.token = os.getenv("BETA_TOKEN")
+    def __init__(self, canvas_url, dotenv_path, token_type):
+        self.canvas_api_url = canvas_url
+        load_dotenv(dotenv_path)  # load token from .env file
+        self.token = os.getenv(token_type)
 
     def get_courses_this_semester(self) -> dict:
         """
@@ -68,6 +68,7 @@ class CanvasUtil:
         for course in content:
             if course["enrollment_term_id"] == enrollment_term_id:
                 result[course["name"]] = int(course["id"])
+            ## ----------TEMPORARY FOR TESTING PURPOSES---------------
             elif course["course_code"] == "BLANCHARD":
                 result[course["name"]] = int(course["id"])
 
@@ -93,7 +94,7 @@ class CanvasUtil:
         for assignment in content:
 
             if str(assignment["name"]).lower().count(assignment_name.lower()):
-                print(f"Found assignment: {assignment['name']}")
+                print(f"| Found assignment: {assignment['name']}")
                 return str(assignment["id"])
 
         raise Exception("ERROR: No matching assignment found!")
@@ -209,36 +210,66 @@ class CanvasUtil:
 
 
 def main():
-    canvas_util = CanvasUtil()
+    # consts that can be swapped out if changing use case.
+    PRODUCTION_URL = "https://ufl.instructure.com/api/v1"# Canvas Production is live Canvas where changes will be applied to students.
+    BETA_URL = "https://ufl.beta.instructure.com/api/v1" # Canvas Beta is for testing changes that won't apply to courses yet.
+    DOT_ENV_PATH = "canvas.env"
+    PRODUCTION_TOKEN_TYPE = "TOKEN"
+    BETA_TOKEN_TYPE = "BETA_TOKEN"
+
+    canvas_type = input("Would you like to upload to Live Canvas or Canvas Beta? {Choices: Live, Beta} ")
+    if canvas_type == "Live" or canvas_type == "live":
+        canvas_util = CanvasUtil(PRODUCTION_URL,DOT_ENV_PATH,PRODUCTION_TOKEN_TYPE)
+        print("Starting CSV Uploader With Parameters -> API_URL:",PRODUCTION_URL,"-> DOT_ENV: ",DOT_ENV_PATH,"-> TOKEN_TYPE:",PRODUCTION_TOKEN_TYPE)
+    elif canvas_type == "Beta" or canvas_type == "beta":
+        canvas_util = CanvasUtil(BETA_URL,DOT_ENV_PATH,BETA_TOKEN_TYPE)
+        print("Starting CSV Uploader With Parameters -> API_URL:",BETA_URL,"-> DOT_ENV:",DOT_ENV_PATH,"-> TOKEN_TYPE:",BETA_TOKEN_TYPE)
+    else:
+        print("| InputError: Your input does not match one of the chosen types.")
+        print("└─> exiting with error")
+
+
+    # CanvasUtil object, driver object for functionality, if you want beta or production, a different .env path, or token, enter here into constructor.
 
     courses = canvas_util.get_courses_this_semester()
     course_names = list(courses.keys())
-    print(course_names)
-    print("***Which course are you choosing? (enter number, 0 indexed)")
+    print("-=- Listing all courses for which you have role: Teacher in current enrollemnt period -=-")
     temp_count = 0
     for name in course_names:
         print(f"{temp_count}. {name}")
         temp_count = temp_count + 1
+    print("-=- Which course are you choosing? {Enter Number, 0 indexed} -=-")
     index_choice = input()
-    course_id = courses[course_names[int(index_choice)]]
+    try:
+        course_id = courses[course_names[int(index_choice)]]
+    except ValueError:
+        print("| ValueError: Your choice could not be converted from str -> int")
+        print("└─> exiting with error")
+        exit(-1)
+
+    print("| loading course information, this may take a few seconds...")
 
     section_ids = canvas_util.get_section_ids(course_id)
-    print(f"{len(section_ids)} section(s) found")
+    print(f"└─> {len(section_ids)} section(s) found")
 
-    print("***Type some part of the title of your assignment - if it's \"Python Pitches\", type \"Pitches\"")
+    print("-=- Type some part of the title of your assignment - if it's \"Python Pitches\", type \"Pitches\" -=-")
     assignment_name = input()
 
     assignment_id = canvas_util.get_assignment_id_by_name(course_id, assignment_name)
-    print(f"Found assignment ID: {assignment_id}")
+    print(f"└─> Found assignment ID: {assignment_id}")
 
     user_ids = {}
     for section in section_ids:
         canvas_util.get_student_ids_by_section(course_id, section, user_ids)
 
-    print("***Please input path of CSV file:")
+    print("-=- Please input path of CSV file: {If on WSL, remember to use mounted drives and linux formatted paths} -=-")
     csv_path = input()
-    students_from_file = canvas_util.populate_students_from_csv(csv_path)
-
+    try:
+        students_from_file = canvas_util.populate_students_from_csv(csv_path)
+    except FileNotFoundError:
+        print("| FileNotFoundError: The file path you specified could not be located")
+        print("└─> exiting with error")
+        exit(-1)
     rubric_id = canvas_util.get_rubric_id(course_id, assignment_id)
     rubric_format = canvas_util.generate_rubric(course_id, rubric_id)
 
