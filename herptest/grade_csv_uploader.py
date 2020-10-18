@@ -50,14 +50,15 @@ class Student:
 class CanvasUtil:
     def __init__(self):
         self.canvas_api_url = "https://ufl.beta.instructure.com/api/v1"
-        load_dotenv()  # load token from .env file
-        self.token = os.getenv("TOKEN")
+        load_dotenv("canvas.env")  # load token from .env file
+        self.token = os.getenv("BETA_TOKEN")
 
     def get_courses_this_semester(self) -> dict:
         """
         Get dictionary (name -> id) of courses in this semester
         """
-        response = requests.get(f"{self.canvas_api_url}/courses?enrollment_type=ta", auth=BearerAuth(self.token))
+        response = requests.get(f"{self.canvas_api_url}/courses?enrollment_type=teacher", auth=BearerAuth(self.token))
+        # print(response.json())
         content = response.json()
         enrollment_term_id = content[0]["enrollment_term_id"]
         for course in content:  # Find the current enrollment term
@@ -66,6 +67,8 @@ class CanvasUtil:
         result = {}
         for course in content:
             if course["enrollment_term_id"] == enrollment_term_id:
+                result[course["name"]] = int(course["id"])
+            elif course["course_code"] == "BLANCHARD":
                 result[course["name"]] = int(course["id"])
 
         return result
@@ -210,6 +213,7 @@ def main():
 
     courses = canvas_util.get_courses_this_semester()
     course_names = list(courses.keys())
+    print(course_names)
     print("***Which course are you choosing? (enter number, 0 indexed)")
     temp_count = 0
     for name in course_names:

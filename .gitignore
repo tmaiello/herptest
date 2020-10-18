@@ -3,3 +3,5 @@ dist/
 MANIFEST
 build/
 herptest.egg-info/
+*.env
+venv

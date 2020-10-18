@@ -22,7 +22,8 @@ setup(
     { 'console_scripts':
         [
             'elma = herptest.extract_lms_archive:main',
-            'herp = herptest.run_test_suite:main'
+            'herp = herptest.run_test_suite:main',
+            'csv-upload = herptest.grade_csv_uploader:main'
         ]
     }
 )
