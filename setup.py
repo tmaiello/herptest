@@ -9,7 +9,13 @@ setup(
     author='Jeremiah Blanchard',
     author_email='jjb@eng.ufl.edu',
     description='Test suite tools for instructors',
-    install_requires=['pyside2'],
+
+    install_requires=[
+        'paramiko',
+        'vix',
+        'virtualbox',
+        'pyside2'
+    ],
     package_data={'herptest': ['herptest/*.png']},
     include_package_data=True,
 
