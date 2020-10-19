@@ -81,8 +81,22 @@ class VmWrapper:
         time.sleep(self._boot_time)
 
     # Method to send the necessary files over to reptilian, make the project, then reboot
-    def make_vm(self, target):
+    def make_vm(self, submission):
+        if submission[0] == '.':
+            # Split off . if it exists
+            submission = submission[1:]
+        if submission[0] == '\\':
+            # Split off \ if it exists
+            submission = submission[1:]
+
+        # Update payload with the current project directory
+        self._payload_dir = os.path.join(self._payload_dir, submission)
+
+        target = os.path.basename(submission)
+
+        # Boot the VM
         self.boot_vm()
+
         # Connect to the remote server
         print("Connecting via SSH...")
         ssh = self.loop_for_shell()
@@ -108,6 +122,9 @@ class VmWrapper:
         # print("Rebooting post build...")
         # self.vm.power_on()
         # time.sleep(VM_BOOT_TIME)
+
+        # Return the location of the staging and build error logs to populate the errors into error.log
+        return (self._result_dir + STAGING_LOG + ERR_LOG, self._result_dir + BUILD_LOG + ERR_LOG)
 
     # Method to run tests, then shut down the VM once completed
     def run_tests(self, target):
@@ -221,13 +238,13 @@ class VmWrapper:
         sftp = ssh.open_sftp()
 
         for filename in self._payload_files:
-            if not os.path.isfile(self._payload_dir + "/" + target + "/" + filename):
-                print("Error - file " + filename + " does not exist in payload area for target " + target + ". Skipping.")
+            if not os.path.isfile(self._payload_dir + "/" + filename):
+                print("Error - file " + filename + " does not exist in payload area for target " + submission + ". Skipping.")
                 continue
 
             print("Pushing " + filename + "...")
             try:
-                sftp.put(self._payload_dir + "/" + target + "/" + filename, self._remote_payload_dir + "/" + filename)
+                sftp.put(self._payload_dir + "/" + filename, self._remote_payload_dir + "/" + filename)
             except:
                 print("Error: could not upload " + filename + ".")
 

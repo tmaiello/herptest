@@ -64,7 +64,20 @@ def build_project(source_root, build_root, build_cfg, submission):
         os.chdir(build_root)
 
     if build_cfg.vm.is_vm == True:
-        build_cfg.vm_inst.make_vm(submission)
+        staging_log, build_log = build_cfg.vm_inst.make_vm(submission)
+
+        # Check log files pulled from the VM for any errors
+        if os.path.isfile(staging_log):
+            # If we have a staging error log at the location, put its contents into error.log
+            logging.error("STAGING ERRORS\n---------------")
+            with open(staging_log) as file:
+                logging.error(file.read())
+        
+        if os.path.isfile(build_log):
+            # If we have a build error log at the location, put its contents into error.log
+            logging.error("BUILD ERRORS\n---------------")
+            with open(build_log) as file:
+                logging.error(file.read())
 
     try:
         # Prepare to make substitutions to the prep / build commands if applicable.
