@@ -1,5 +1,5 @@
 from PySide2 import QtCore, QtWidgets, QtGui
-import os, subprocess
+import os, subprocess, asyncio
 
 class HomePage(QtWidgets.QWidget):
     def __init__(self):
@@ -8,8 +8,8 @@ class HomePage(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout()
         self.layout.setContentsMargins(10,30,10,10)
 
-        self.createProjectPicker()
         self.createTestSuitePicker()
+        self.createProjectPicker()
         self.createTestOutputFields()
 
         self.setLayout(self.layout)
@@ -84,7 +84,7 @@ class HomePage(QtWidgets.QWidget):
         self.testButtons = QtWidgets.QHBoxLayout()
         self.testButtons.addStretch(10)
 
-        self.runTests = QtWidgets.QPushButton("Run tests")
+        self.runTests = QtWidgets.QPushButton("Run Tests")
         self.runTests.setFixedHeight(50)
         self.runTests.setFixedWidth(100)
         self.runTests.clicked.connect(self.runTestSuite)
@@ -121,8 +121,12 @@ class HomePage(QtWidgets.QWidget):
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         
         self.outputBox.clear()
-        self.outputBox.appendPlainText("$ " + " ".join(command))
+        self.outputBox.appendPlainText("$ " + " ".join(command) + " " + self.testSuitePath.text() + " " + self.projectPath.text())
         self.outputBox.repaint()
+
+        self.runTests.setText("Running...")
+        self.runTests.setEnabled(False)
+        self.runTests.repaint()
 
         while True:
             output = process.stdout.readline()
@@ -143,6 +147,9 @@ class HomePage(QtWidgets.QWidget):
                     self.outputBox.repaint()
 
                 break
+
+        self.runTests.setText("Run Tests")
+        self.runTests.setEnabled(True)  
         self.showResultsButton()
 
     def switchToResults(self):

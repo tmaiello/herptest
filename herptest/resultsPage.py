@@ -9,7 +9,7 @@ class ResultsPage(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout()
         self.layout.setContentsMargins(10,30,10,10)
 
-        self.layout.addWidget(QtWidgets.QLabel("Test results go here"))
+        self.layout.addWidget(QtWidgets.QLabel("Test Results  - Coming soon!"))
 
 
         self.setLayout(self.layout)

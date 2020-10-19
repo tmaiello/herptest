@@ -23,7 +23,7 @@ def initWindow():
     homePageInst.setResultsFunction(resultsPageInst.loadResults, (tabContainer.setCurrentWidget, resultsPageInst))
 
 
-    tabList = ["ELMA Config"]
+    tabList = ["ELMA Config", "Canvas CSV Upload"]
     for t in tabList:
         tabContainer.addTab(QtWidgets.QLabel("    " + t + " - Coming soon!"), t)
 
@@ -58,7 +58,7 @@ def main():
     else:
         splash = createSplash()
         splash.show()
-        time.sleep(1)
+        time.sleep(2.5)
         window.show()
         splash.finish(window)
 
