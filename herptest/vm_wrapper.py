@@ -1,7 +1,6 @@
 import virtualbox
 import virtualbox.events
 import virtualbox.library
-from vix import VixHost, VixError, VixJob
 
 import os
 import time
@@ -11,6 +10,11 @@ import paramiko
 import paramiko.ssh_exception
 import socket
 import subprocess
+import sys
+
+if sys.platform == "win32":
+    # Can only build VMware on Windows CMD (not Linux or WSL)
+    from vix import VixHost, VixError, VixJob
 
 MAX_RETRIES  = 10
 VM_SLEEP_TIME = 10
@@ -239,7 +243,7 @@ class VmWrapper:
 
         for filename in self._payload_files:
             if not os.path.isfile(self._payload_dir + "/" + filename):
-                print("Error - file " + filename + " does not exist in payload area for target " + submission + ". Skipping.")
+                print("Error - file " + filename + " does not exist in payload area for target " + target + ". Skipping.")
                 continue
 
             print("Pushing " + filename + "...")
