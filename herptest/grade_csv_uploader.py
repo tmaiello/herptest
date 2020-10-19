@@ -6,7 +6,22 @@ import csv
 import json
 from dotenv import load_dotenv
 import sys
+import argparse
+# TODO: fix import formatting for CLI command
+from env_wrapper import EnvWrapper
 
+# Version Number for Release
+VERSION_NUM = 1.0
+
+# handle command line args
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='A program to run a set of tests for a programming assignment.')
+    parser.add_help = True
+    parser.add_argument('-V', '-v', '--version', action='version', version='%(prog)s ' + str(VERSION_NUM))
+    parser.add_argument('-S', '-s', '--setupenv', action='store_true', help='Run the setup wizard for Canvas API Key Environment Variables')
+    config = parser.parse_args(sys.argv[1:])
+    config.logformat = "%(message)s"
+    return config
 
 class BearerAuth(requests.auth.AuthBase):
     def __init__(self, token: str):
@@ -208,6 +223,11 @@ class CanvasUtil:
                 counter = counter + 1
                 print(f"{counter} student(s) graded.")
 
+def env_setup():
+    e = EnvWrapper()
+    print("-=- Welcome to the Canvas API Key setup tool, you will be prompted to enter your Canvas key and your Canvas Beta key -=-")
+    print("-=- If you only wish to use one of these keys, you can leave the other blank / submit any text. To reinstall, run this command again -=-")
+    e.populate_env()
 
 def main():
     # consts that can be swapped out if changing use case.
@@ -217,27 +237,44 @@ def main():
     PRODUCTION_TOKEN_TYPE = "TOKEN"
     BETA_TOKEN_TYPE = "BETA_TOKEN"
 
+    arg_config = parse_arguments()
+    if arg_config.setupenv == True:
+        env_setup()
+
     canvas_type = input("Would you like to upload to Live Canvas or Canvas Beta? {Choices: Live, Beta} ")
     if canvas_type == "Live" or canvas_type == "live":
-        canvas_util = CanvasUtil(PRODUCTION_URL,DOT_ENV_PATH,PRODUCTION_TOKEN_TYPE)
+        try:
+            canvas_util = CanvasUtil(PRODUCTION_URL,DOT_ENV_PATH,PRODUCTION_TOKEN_TYPE)
+        except:
+            print("| Canvas Util Object failed to be created. Is your API key valid?")
+            print("| Hint: try using --setupenv to set up your environment variables.")
+            print("└─> exiting with error")
         print("Starting CSV Uploader With Parameters -> API_URL:",PRODUCTION_URL,"-> DOT_ENV: ",DOT_ENV_PATH,"-> TOKEN_TYPE:",PRODUCTION_TOKEN_TYPE)
     elif canvas_type == "Beta" or canvas_type == "beta":
-        canvas_util = CanvasUtil(BETA_URL,DOT_ENV_PATH,BETA_TOKEN_TYPE)
+        try:
+            canvas_util = CanvasUtil(BETA_URL,DOT_ENV_PATH,BETA_TOKEN_TYPE)
+        except:
+            print("| Canvas Util Object failed to be created. Is your API key valid?")
+            print("| Hint: try using --setupenv to set up your environment variables.")
+            print("└─> exiting with error")
         print("Starting CSV Uploader With Parameters -> API_URL:",BETA_URL,"-> DOT_ENV:",DOT_ENV_PATH,"-> TOKEN_TYPE:",BETA_TOKEN_TYPE)
     else:
         print("| InputError: Your input does not match one of the chosen types.")
         print("└─> exiting with error")
+        exit(-1)
 
 
     # CanvasUtil object, driver object for functionality, if you want beta or production, a different .env path, or token, enter here into constructor.
 
     courses = canvas_util.get_courses_this_semester()
     course_names = list(courses.keys())
+
     print("-=- Listing all courses for which you have role: Teacher in current enrollemnt period -=-")
     temp_count = 0
     for name in course_names:
         print(f"{temp_count}. {name}")
         temp_count = temp_count + 1
+    
     print("-=- Which course are you choosing? {Enter Number, 0 indexed} -=-")
     index_choice = input()
     try:
@@ -253,9 +290,13 @@ def main():
     print(f"└─> {len(section_ids)} section(s) found")
 
     print("-=- Type some part of the title of your assignment - if it's \"Python Pitches\", type \"Pitches\" -=-")
-    assignment_name = input()
-
-    assignment_id = canvas_util.get_assignment_id_by_name(course_id, assignment_name)
+    try:
+        assignment_name = input()
+        assignment_id = canvas_util.get_assignment_id_by_name(course_id, assignment_name)
+    except:
+        print("| Error: No matching assignment found")
+        print("└─> exiting with error")
+        exit(-1)
     print(f"└─> Found assignment ID: {assignment_id}")
 
     user_ids = {}
@@ -270,11 +311,23 @@ def main():
         print("| FileNotFoundError: The file path you specified could not be located")
         print("└─> exiting with error")
         exit(-1)
-    rubric_id = canvas_util.get_rubric_id(course_id, assignment_id)
-    rubric_format = canvas_util.generate_rubric(course_id, rubric_id)
 
-    canvas_util.upload_grades(course_id, user_ids, assignment_id, students_from_file, rubric_format)
+    try:
+        rubric_id = canvas_util.get_rubric_id(course_id, assignment_id)
+        rubric_format = canvas_util.generate_rubric(course_id, rubric_id)
+    except:
+        print("| Rubric operation failed")
+        print("└─> exiting with error")
+        exit(-1)
+    
+    try:
+        canvas_util.upload_grades(course_id, user_ids, assignment_id, students_from_file, rubric_format)
+    except:
+        print("| Rubric Upload operation failed")
+        print("└─> exiting with error")
+        exit(-1)
 
+    print("-=- Rubric Upload Complete. Shutting down -=-")
 
 if __name__ == "__main__":
     main()
