@@ -328,7 +328,7 @@ def main():
         cfg.build.vm_inst = vm
 
     # Build the environment components (only need to do this once.)
-    if cfg.build.framework_src and cfg.build.framework_bin:
+    if cfg.build.framework_src and cfg.build.framework_bin and cfg.build.is_vm == False:
         if cfg.build.prep_cmd or cfg.build.compile_cmd:
             logging.info("Prepping / building framework environment... ")
             result_error = build_project(cfg.build.framework_src, cfg.build.framework_bin, cfg.build, "framework")
