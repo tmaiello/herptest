@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import sys
 import argparse
 # TODO: fix import formatting for CLI command
-from env_wrapper import EnvWrapper
+from herptest.env_wrapper import EnvWrapper
 
 # Version Number for Release
 VERSION_NUM = 1.0
@@ -165,6 +165,7 @@ class CanvasUtil:
             for i, row in enumerate(csv_reader):
                 if i == 0:
                     for j, val in enumerate(row):
+                        # TODO: change the logic of this to be more robust.
                         if val == "Total Left":
                             column_end_index = j
                             break
@@ -180,7 +181,6 @@ class CanvasUtil:
                             grade = 0
                         student.rubric.append((grade, row[i + 1]))
                     students.append(student)
-
         return students
 
     def upload_grades(self, course_id: str, user_ids: dict, assignment_id: str, students_from_file: list,
@@ -206,7 +206,7 @@ class CanvasUtil:
                 payload = {}
 
                 if len(student.rubric) != len(rubric.criteria):
-                    raise Exception("Criteria length mismatch!")
+                    raise Exception("Criteria length mismatch!"+str(len(student.rubric))+"!="+str(len(rubric.criteria)))
 
                 for i, criterion in enumerate(rubric.criteria):
                     payload[f"rubric_assessment[{criterion.id}][points]"] = student.rubric[i][0]
@@ -243,20 +243,10 @@ def main():
 
     canvas_type = input("Would you like to upload to Live Canvas or Canvas Beta? {Choices: Live, Beta} ")
     if canvas_type == "Live" or canvas_type == "live":
-        try:
-            canvas_util = CanvasUtil(PRODUCTION_URL,DOT_ENV_PATH,PRODUCTION_TOKEN_TYPE)
-        except:
-            print("| Canvas Util Object failed to be created. Is your API key valid?")
-            print("| Hint: try using --setupenv to set up your environment variables.")
-            print("└─> exiting with error")
+        canvas_util = CanvasUtil(PRODUCTION_URL,DOT_ENV_PATH,PRODUCTION_TOKEN_TYPE)
         print("Starting CSV Uploader With Parameters -> API_URL:",PRODUCTION_URL,"-> DOT_ENV: ",DOT_ENV_PATH,"-> TOKEN_TYPE:",PRODUCTION_TOKEN_TYPE)
     elif canvas_type == "Beta" or canvas_type == "beta":
-        try:
-            canvas_util = CanvasUtil(BETA_URL,DOT_ENV_PATH,BETA_TOKEN_TYPE)
-        except:
-            print("| Canvas Util Object failed to be created. Is your API key valid?")
-            print("| Hint: try using --setupenv to set up your environment variables.")
-            print("└─> exiting with error")
+        canvas_util = CanvasUtil(BETA_URL,DOT_ENV_PATH,BETA_TOKEN_TYPE)
         print("Starting CSV Uploader With Parameters -> API_URL:",BETA_URL,"-> DOT_ENV:",DOT_ENV_PATH,"-> TOKEN_TYPE:",BETA_TOKEN_TYPE)
     else:
         print("| InputError: Your input does not match one of the chosen types.")
@@ -266,7 +256,13 @@ def main():
 
     # CanvasUtil object, driver object for functionality, if you want beta or production, a different .env path, or token, enter here into constructor.
 
-    courses = canvas_util.get_courses_this_semester()
+    try:
+        courses = canvas_util.get_courses_this_semester()
+    except:
+        print("| Canvas Util Object failed to be created. Is your API key valid?")
+        print("| Hint: try using --setupenv to set up your environment variables.")
+        print("└─> exiting with error")
+        exit(-1)
     course_names = list(courses.keys())
 
     print("-=- Listing all courses for which you have role: Teacher in current enrollemnt period -=-")
