@@ -11,12 +11,13 @@ Team Peng - CIS 4930 - Python Term Project
 
 This test suite it built to facilitate testing of student projects by teachers according to a predefined specification.
 
-This package includes four primary tools:
+This package includes five primary tools:
 
 - `herptest.toolbox`, which contains standardized / cross-platform function calls (currently only library loading)
 - `elma`, a command line tool to extract student submissions: (E)xtract (LM)S (A)rchive. Support is limited to Canvas. 
 - `herp`, a command line tool to run a project test suite as specified by the user.
-- `peng-gui`, a graphical interface built on top of the other command-line tools in this package
+- `peng-gui`, a graphical interface built on top of the other command-line tools in this package.
+- `csv-upload`, a CLI tool to automatically push a well formatted CSV of student grades and comments to a specified assignment.
 
 
 ## HerpTest Toolbox (`herptest.toolbox`)
@@ -207,6 +208,13 @@ Additionally, qtmake may require the following:
 `wget https://download.qt.io/development_releases/prebuilt/libclang/libclang-release_60-linux-Rhel7.2-gcc5.3-x86_64-clazy.7z`
 `7z x ./libclang-release_60-linux-Rhel7.2-gcc5.3-x86_64-clazy.7z`
 `export LLVM_INSTALL_DIR=$PWD/libclang`
+
+## Using The CSV Uploading Tool (csv-upload)
+
+To run from CLI after building herp, run `csv-upload` with optional flags `--help`, `--version`, and `--setupenv`
+
+Where `--setupenv` will run you through the installation process of importing your Canvas API Token.
+
 
 ## Building this Package
 
