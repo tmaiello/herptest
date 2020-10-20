@@ -24,8 +24,10 @@ for assignment in course.get_assignments():
         for sub in assignment.get_submissions():
             if(sub.user_id == students[0][2]):
                 print(sub.score)
+                score = input("Change Blanchard's score to: ")
                 sub.edit(
                     submission = {
-                        'posted_grade' : '100'
+                        'posted_grade' : score
                     }
                 )
+                print(sub.score)
