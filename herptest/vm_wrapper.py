@@ -92,6 +92,8 @@ class VmWrapper:
         if submission[0] == '\\':
             # Split off \ if it exists
             submission = submission[1:]
+        if submission == "framework":
+            submission = "Source\Framework"
 
         # Update payload with the current project directory
         self._payload_dir = os.path.join(self._payload_dir, submission)
