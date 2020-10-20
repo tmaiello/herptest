@@ -14,13 +14,13 @@ class EnvWrapper:
 
     # Populates the keys into canvas.env permanently
     def populate_env(self):
-        with open('canvas.env', 'w') as self.f:
+        with open('canvas.env', 'w') as f:
             print("Enter Live Canvas Token: ")
             self.prod_token = "TOKEN="+str(self.input_func()+"\n")
             print("Enter Beta Canvas Token: ")
             self.beta_token = "BETA_TOKEN="+str(self.input_func()+"\n")
-            self.f.write(self.prod_token)
-            self.f.write(self.beta_token)
+            f.write(self.prod_token),print("Production Token Stored.")
+            f.write(self.beta_token),print("Beta Token Stored.")
 
     # Brings canvas keys into virtual env during runtime
     def read_env(self):
