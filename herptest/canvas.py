@@ -16,8 +16,6 @@ canvas = Canvas(API_URL, API_Key)
 course = canvas.get_course(code)
 students = []
 
-
-
 for student in course.get_users(enrollment_type='student'):
     students.append(student.name.split(' ') + [student.id])
 
