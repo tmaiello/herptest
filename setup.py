@@ -19,7 +19,7 @@ setup(
         'paramiko',
         'vix',
         'virtualbox',
-        'pyside2'
+        'pyside2',
         'canvasapi'
     ],
     package_data={'herptest': ['herptest/*.png']},
