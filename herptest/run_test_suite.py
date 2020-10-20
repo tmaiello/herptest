@@ -16,9 +16,10 @@ import string
 import logging
 
 from . import toolbox
+from .vm_wrapper import VmWrapper
 from concurrent import futures
 
-VERSION = '0.9.9.2'
+VERSION = '0.9.9.3'
 
 cfg = argparse.Namespace()
 cfg.runtime = argparse.Namespace()
@@ -46,7 +47,7 @@ def parse_arguments():
 #    cfg.logformat = "[%(levelname)s] %(message)s"
 
 
-def build_project(source_root, build_root, build_cfg):
+def build_project(source_root, build_root, build_cfg, submission):
     result_error = None
     current_dir = os.getcwd()
 
@@ -61,6 +62,22 @@ def build_project(source_root, build_root, build_cfg):
         if not os.path.exists(build_root):
             os.makedirs(build_root)
         os.chdir(build_root)
+
+    if build_cfg.vm.is_vm == True:
+        staging_log, build_log = build_cfg.vm_inst.make_vm(submission)
+
+        # Check log files pulled from the VM for any errors
+        if os.path.isfile(staging_log):
+            # If we have a staging error log at the location, put its contents into error.log
+            logging.error("STAGING ERRORS\n---------------")
+            with open(staging_log) as file:
+                logging.error(file.read())
+        
+        if os.path.isfile(build_log):
+            # If we have a build error log at the location, put its contents into error.log
+            logging.error("BUILD ERRORS\n---------------")
+            with open(build_log) as file:
+                logging.error(file.read())
 
     try:
         # Prepare to make substitutions to the prep / build commands if applicable.
@@ -95,6 +112,7 @@ def build_project(source_root, build_root, build_cfg):
 def run_suite_tests(framework, subject, proj_settings):
     results = []
 
+    # TODO - figure out how to incorporate running VM tests
     # Run each project's tests.
     for project in proj_settings.projects:
         display_name, identifier, points = project
@@ -243,7 +261,7 @@ def prepare_and_test_submission(framework_context, submission):
 
     # Build the project.
     logging.info("Prepping / building project(s) for " + submission + "... ")
-    error = build_project(cfg.build.subject_src, cfg.build.subject_bin, cfg.build)
+    error = build_project(cfg.build.subject_src, cfg.build.subject_bin, cfg.build, submission)
     if error:
         logging.info("error building (see logs)... ")
         logging.error("Error prepping/building %s - %s: %s" % (submission, type(error).__name__, error))
@@ -299,12 +317,21 @@ def main():
         toolbox.save_csv(summary_path, [[ "Student", "LMS ID", "Score" ]])
     except Exception as e:
         logging.info("Warning: couldn't open summary file for writing: [%s]" % summary_path)
+    
+    # Check if we are building a VM first
+    if cfg.build.vm.is_vm == True:
+        # Create a new VM wrapper
+        vm = VmWrapper(cfg.build.vm)
+
+        # Start up the VM software (i.e. a VMWare host)
+        vm.start_vm()
+        cfg.build.vm_inst = vm
 
     # Build the environment components (only need to do this once.)
     if cfg.build.framework_src and cfg.build.framework_bin:
         if cfg.build.prep_cmd or cfg.build.compile_cmd:
             logging.info("Prepping / building framework environment... ")
-            result_error = build_project(cfg.build.framework_src, cfg.build.framework_bin, cfg.build)
+            result_error = build_project(cfg.build.framework_src, cfg.build.framework_bin, cfg.build, "framework")
             if result_error:
                 logging.info("%s: %s\n" % (type(result_error).__name__, result_error))
                 return

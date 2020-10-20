@@ -94,6 +94,7 @@ class SelectiveStreamHandler(logging.StreamHandler):
             if self._add_level:
                 record.msg = "[%s] %s" % (record.levelname, record.msg)
             logging.StreamHandler.emit(self, record)
+            logging.StreamHandler.flush(self)
 
 
 def data_to_file(data, filename):
