@@ -19,7 +19,7 @@ from . import toolbox
 from .vm_wrapper import VmWrapper
 from concurrent import futures
 
-VERSION = '0.9.9.3'
+VERSION = '0.9.9.4'
 
 cfg = argparse.Namespace()
 cfg.runtime = argparse.Namespace()
