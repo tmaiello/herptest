@@ -4,6 +4,7 @@ MANIFEST
 build/
 herptest.egg-info/
 canvas-helper/*.txt
+herptest/*.txt
 *.env
 venv
 .idea
