@@ -20,6 +20,7 @@ setup(
         'vix',
         'virtualbox',
         'pyside2'
+        'canvasapi'
     ],
     package_data={'herptest': ['herptest/*.png']},
     include_package_data=True,
