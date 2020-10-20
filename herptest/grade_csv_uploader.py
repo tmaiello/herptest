@@ -11,7 +11,7 @@ import argparse
 from herptest.env_wrapper import EnvWrapper
 
 # Version Number for Release
-VERSION_NUM = 1.0
+VERSION_NUM = '0.9.9.3'
 
 # handle command line args
 def parse_arguments():
