@@ -5,3 +5,5 @@ build/
 herptest.egg-info/
 *.env
 venv
+.idea
+.vscode
