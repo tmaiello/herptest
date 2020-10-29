@@ -122,24 +122,25 @@ class VmWrapper:
         print("Shutting down post build...")
         self.dirty_shutdown()
 
-        # TODO - uncomment once testing is able to be performed
-        # print("Rebooting post build...")
-        # self.vm.power_on()
-        # time.sleep(VM_BOOT_TIME)
+        print("Rebooting post build...")
+        self.vm.power_on()
+        time.sleep(self._boot_time)
 
         # Return the location of the staging and build error logs to populate the errors into error.log
         return (self._result_dir + STAGING_LOG + ERR_LOG, self._result_dir + BUILD_LOG + ERR_LOG)
 
     # Method to run tests, then shut down the VM once completed
-    def run_tests(self, target):
+    def run_tests(self, submission):
+        # Run the test phase.
+        print("Beginning test cycle...")
+
+        target = os.path.basename(submission)
+
         ssh = self.loop_for_shell()
         if not ssh:
             print("Error setting up SSH connection! Exiting...");
             self.dirty_shutdown()
             return
-
-        # Run the test phase.
-        print("Beginning test cycle...")
 
         # Limit to 2 min test
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(self._remote_staging_dir + "/" + 'run.sh', timeout=120000)
@@ -255,9 +256,9 @@ class VmWrapper:
         # Run the build script; power down when completed.
         print("Executing build....")
         # Limit to 20 min build
-        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command("chmod +x " + self._remote_payload_dir + "/" + self._build_cmd)
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command("chmod +x " + self._remote_staging_dir + "/" + self._build_cmd)
         time.sleep(2)
-        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(self._remote_payload_dir + "/" + self._build_cmd, timeout=1200000)
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(self._remote_staging_dir + "/" + self._build_cmd, timeout=1200000)
         time.sleep(2)
         build_errors = ssh_stderr.readlines()
 

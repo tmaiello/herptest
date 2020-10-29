@@ -109,10 +109,12 @@ def build_project(source_root, build_root, build_cfg, submission):
     return result_error
 
 
-def run_suite_tests(framework, subject, proj_settings):
+def run_suite_tests(framework, subject, proj_settings, submission):
     results = []
 
     # TODO - figure out how to incorporate running VM tests
+    if cfg.build.vm.is_vm == True:
+        cfg.build.vm.vm_inst.run_tests(submission)
     # Run each project's tests.
     for project in proj_settings.projects:
         display_name, identifier, points = project
@@ -280,7 +282,7 @@ def prepare_and_test_submission(framework_context, submission):
     logging.info("done.\n")
 
     starting_dir = os.getcwd()
-    results = run_suite_tests(framework_context, subject_context, cfg.project)
+    results = run_suite_tests(framework_context, subject_context, cfg.project, submission)
     cfg.project.shutdown_subject(subject_context)
     os.chdir(starting_dir)
     return results
