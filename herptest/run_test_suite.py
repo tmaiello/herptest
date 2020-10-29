@@ -110,11 +110,12 @@ def build_project(source_root, build_root, build_cfg, submission):
 
 
 def run_suite_tests(framework, subject, proj_settings, submission):
+    global cfg
     results = []
 
     # TODO - figure out how to incorporate running VM tests
     if cfg.build.vm.is_vm == True:
-        cfg.build.vm.vm_inst.run_tests(submission)
+        cfg.build.vm_inst.run_tests(submission)
     # Run each project's tests.
     for project in proj_settings.projects:
         display_name, identifier, points = project

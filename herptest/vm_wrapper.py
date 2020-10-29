@@ -116,15 +116,18 @@ class VmWrapper:
         # Run the build phase.
         print("Beginning build cycle...")
         self.run_build(ssh, target)
+        print("Rebooting...")
+        ssh.exec_command(self._remote_staging_dir + "/" + 'reboot.sh', timeout=120000)
+        time.sleep(self._boot_time)
         ssh.close()
 
-        # Reboot if needed
-        print("Shutting down post build...")
-        self.dirty_shutdown()
+        # # Reboot if needed
+        # print("Shutting down post build...")
+        # self.dirty_shutdown()
 
-        print("Rebooting post build...")
-        self.vm.power_on()
-        time.sleep(self._boot_time)
+        # print("Rebooting post build...")
+        # self.vm.power_on()
+        # time.sleep(self._boot_time)
 
         # Return the location of the staging and build error logs to populate the errors into error.log
         return (self._result_dir + STAGING_LOG + ERR_LOG, self._result_dir + BUILD_LOG + ERR_LOG)
