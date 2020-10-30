@@ -10,6 +10,7 @@ setup(
     author_email='jjb@eng.ufl.edu',
     description='Test suite tools for instructors',
     install_requires=[
+        'numpy',
         'certifi',
         'chardet',
         'idna',

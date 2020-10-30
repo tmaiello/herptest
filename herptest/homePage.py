@@ -153,4 +153,5 @@ class HomePage(QtWidgets.QWidget):
         self.showResultsButton()
 
     def switchToResults(self):
-        self.raiseResultsTab(*self.raiseResultsTabArgs)
+        #pass the filepath of the results csv and the raise function
+        self.raiseResultsTab(self.testSuitePath.text() + "/Results/summary.csv", *self.raiseResultsTabArgs)
