@@ -122,6 +122,8 @@ class ResultsPage(QtWidgets.QWidget):
         self.layout.addWidget(self.tableView)
         self.layout.addWidget(self.statsView)
 
+        #TODO add button to load specific test result
+        
         self.setLayout(self.layout)
     
 
