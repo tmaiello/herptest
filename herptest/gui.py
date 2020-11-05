@@ -1,7 +1,7 @@
 import sys
 import time, random, pathlib
 from PySide2 import QtCore, QtWidgets, QtGui
-from . import homePage, testSuiteCreator, resultsPage
+from . import homePage, testSuiteCreator, resultsPage, canvasUploader
 
 
         
@@ -17,13 +17,16 @@ def initWindow():
     testSuiteCreatorInst = tabContainer.widget(1)
     tabContainer.addTab(resultsPage.ResultsPage(), "Test Results")
     resultsPageInst = tabContainer.widget(2)
+    tabContainer.addTab(canvasUploader.CanvasUploader(), "Canvas Uploader")
+    canvasUploaderInst = tabContainer.widget(3)
+
 
     #give the home page the funcion to call when the SHOW RESULTS button is clicked
     #pass the function to set the results page as active to the results page so data can load first
     homePageInst.setResultsFunction(resultsPageInst.loadResults, (tabContainer.setCurrentWidget, resultsPageInst))
 
 
-    tabList = ["ELMA Config", "Canvas CSV Upload"]
+    tabList = ["ELMA Config"]
     for t in tabList:
         tabContainer.addTab(QtWidgets.QLabel("    " + t + " - Coming soon!"), t)
 
