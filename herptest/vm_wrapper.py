@@ -93,8 +93,9 @@ class VmWrapper:
             # Split off \ if it exists
             submission = submission[1:]
 
-        # Update payload with the current project directory
-        self._payload_dir = os.path.join(self._payload_dir, submission)
+        # Current project directory
+        submission_dir = os.path.join(self._payload_dir, submission)
+        print(submission_dir)
 
         target = os.path.basename(submission)
 
@@ -115,19 +116,20 @@ class VmWrapper:
 
         # Run the build phase.
         print("Beginning build cycle...")
-        self.run_build(ssh, target)
+        self.run_build(ssh, target, submission_dir)
+        
         print("Rebooting...")
         ssh.exec_command(self._remote_staging_dir + "/" + 'reboot.sh', timeout=120000)
         time.sleep(self._boot_time)
         ssh.close()
 
-        # # Reboot if needed
-        # print("Shutting down post build...")
-        # self.dirty_shutdown()
+        # Reboot if needed
+        print("Shutting down post build...")
+        self.dirty_shutdown()
 
-        # print("Rebooting post build...")
-        # self.vm.power_on()
-        # time.sleep(self._boot_time)
+        print("Rebooting post build...")
+        self.vm.power_on()
+        time.sleep(self._boot_time)
 
         # Return the location of the staging and build error logs to populate the errors into error.log
         return (self._result_dir + STAGING_LOG + ERR_LOG, self._result_dir + BUILD_LOG + ERR_LOG)
@@ -241,18 +243,18 @@ class VmWrapper:
         build_errors.extend(ssh_stderr.readlines())
         self.write_to_file(build_errors, self._result_dir + "/" + target + "/" + STAGING_LOG + ERR_LOG)
         
-    def run_build(self, ssh, target):
+    def run_build(self, ssh, target, target_dir):
         # Push files via SFTP.
         sftp = ssh.open_sftp()
 
         for filename in self._payload_files:
-            if not os.path.isfile(self._payload_dir + "/" + filename):
+            if not os.path.isfile(target_dir + "/" + filename):
                 print("Error - file " + filename + " does not exist in payload area for target " + target + ". Skipping.")
                 continue
 
             print("Pushing " + filename + "...")
             try:
-                sftp.put(self._payload_dir + "/" + filename, self._remote_payload_dir + "/" + filename)
+                sftp.put(target_dir + "/" + filename, self._remote_payload_dir + "/" + filename)
             except:
                 print("Error: could not upload " + filename + ".")
 

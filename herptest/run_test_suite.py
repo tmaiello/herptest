@@ -49,6 +49,7 @@ def parse_arguments():
 
 def build_project(source_root, build_root, build_cfg, submission):
     result_error = None
+    print(os.getcwd())
     current_dir = os.getcwd()
 
     # If there is a not a specified build directory, fall back to the source directory instead.
@@ -63,48 +64,49 @@ def build_project(source_root, build_root, build_cfg, submission):
             os.makedirs(build_root)
         os.chdir(build_root)
 
+    print(os.getcwd())
     if build_cfg.vm.is_vm == True:
         staging_log, build_log = build_cfg.vm_inst.make_vm(submission)
 
-        # Check log files pulled from the VM for any errors
-        if os.path.isfile(staging_log):
-            # If we have a staging error log at the location, put its contents into error.log
-            logging.error("STAGING ERRORS\n---------------")
-            with open(staging_log) as file:
-                logging.error(file.read())
+        # # Check log files pulled from the VM for any errors
+        # if os.path.isfile(staging_log):
+        #     # If we have a staging error log at the location, put its contents into error.log
+        #     logging.error("STAGING ERRORS\n---------------")
+        #     with open(staging_log) as file:
+        #         logging.error(file.read())
         
-        if os.path.isfile(build_log):
-            # If we have a build error log at the location, put its contents into error.log
-            logging.error("BUILD ERRORS\n---------------")
-            with open(build_log) as file:
-                logging.error(file.read())
+        # if os.path.isfile(build_log):
+        #     # If we have a build error log at the location, put its contents into error.log
+        #     logging.error("BUILD ERRORS\n---------------")
+        #     with open(build_log) as file:
+        #         logging.error(file.read())
+    else:
+        try:
+            # Prepare to make substitutions to the prep / build commands if applicable.
+            replacements = {key : value for key, value in build_cfg.__dict__.items() if not key in ['prep_cmd', 'compile_cmd']}
+            replacements["source_dir"] = source_root
+            replacements["build_dir"] = build_root
+            template = string.Template("")
 
-    try:
-        # Prepare to make substitutions to the prep / build commands if applicable.
-        replacements = {key : value for key, value in build_cfg.__dict__.items() if not key in ['prep_cmd', 'compile_cmd']}
-        replacements["source_dir"] = source_root
-        replacements["build_dir"] = build_root
-        template = string.Template("")
+            if build_cfg.prep_cmd:
+                # Apply substitutions from the build configuration to the prep command
+                prep_cmd = []
+                for entry in build_cfg.prep_cmd:
+                    template.template = entry
+                    prep_cmd.append(template.substitute(**replacements))
+                subprocess.check_output(prep_cmd, stderr=subprocess.STDOUT)
 
-        if build_cfg.prep_cmd:
-            # Apply substitutions from the build configuration to the prep command
-            prep_cmd = []
-            for entry in build_cfg.prep_cmd:
-                template.template = entry
-                prep_cmd.append(template.substitute(**replacements))
-            subprocess.check_output(prep_cmd, stderr=subprocess.STDOUT)
+            if build_cfg.compile_cmd:
+                # Apply substitutions from the build configuration to the compile command
+                compile_cmd = []
+                for entry in build_cfg.compile_cmd:
+                    template.template = entry
+                    compile_cmd.append(template.substitute(**replacements))
+                subprocess.check_output(compile_cmd, stderr=subprocess.STDOUT)
 
-        if build_cfg.compile_cmd:
-            # Apply substitutions from the build configuration to the compile command
-            compile_cmd = []
-            for entry in build_cfg.compile_cmd:
-                template.template = entry
-                compile_cmd.append(template.substitute(**replacements))
-            subprocess.check_output(compile_cmd, stderr=subprocess.STDOUT)
-
-    except (subprocess.CalledProcessError, FileNotFoundError) as error:
-        result_error = error
-
+        except (subprocess.CalledProcessError, FileNotFoundError) as error:
+            result_error = error
+    print("here")
     os.chdir(current_dir)
     return result_error
 
@@ -113,9 +115,9 @@ def run_suite_tests(framework, subject, proj_settings, submission):
     global cfg
     results = []
 
-    # TODO - figure out how to incorporate running VM tests
     if cfg.build.vm.is_vm == True:
         cfg.build.vm_inst.run_tests(submission)
+    
     # Run each project's tests.
     for project in proj_settings.projects:
         display_name, identifier, points = project
@@ -250,10 +252,12 @@ def process_configuration(config):
 # For each submission, copy the base files, then the submission, into the destination folder.
 def prepare_and_test_submission(framework_context, submission):
     global cfg
+    print(os.getcwd())
+    print(submission)
     if not os.path.isdir(submission):
         return None
 
-    # Create a new subject folder with base files in it - then copy oer the submission to be tested.
+    # Create a new subject folder with base files in it - then copy over the submission to be tested.
     if os.path.isdir(cfg.build.destination):
         shutil.rmtree(cfg.build.destination)
 
@@ -285,7 +289,12 @@ def prepare_and_test_submission(framework_context, submission):
     starting_dir = os.getcwd()
     results = run_suite_tests(framework_context, subject_context, cfg.project, submission)
     cfg.project.shutdown_subject(subject_context)
-    os.chdir(starting_dir)
+    if cfg.build.vm.is_vm:
+        # Windows does not always path back to the right directory for VM projects, so explicitly change it
+        os.chdir(cfg.build.vm.payload_dir)
+        print(os.getcwd())
+    else:
+        os.chdir(starting_dir)
     return results
 
 
@@ -347,6 +356,7 @@ def main():
 
     # Prepare and run each submission.
     for submission in glob.glob(os.path.join(cfg.runtime.target_path, cfg.runtime.set)):
+        print(submission)
         submission_info = os.path.basename(submission).split("_", 1)
         student_name, lms_id = submission_info + ["NONE"] * (2 - len(submission_info))
         output_dir = os.path.join(cfg.general.result_path, os.path.basename(submission))
