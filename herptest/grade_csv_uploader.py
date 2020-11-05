@@ -114,6 +114,22 @@ class CanvasUtil:
 
         raise Exception("ERROR: No matching assignment found!")
 
+    def get_assignment_list(self, course_id: str) -> dict:
+        """
+        Get the id of the first assignment with a name that matches the input
+        """
+        response = requests.get(f"{self.canvas_api_url}/courses/{course_id}/assignments", auth=BearerAuth(self.token))
+        content = response.json()
+        assignment_list = {}
+        for assignment in content:
+            print(f"| Found assignment: {assignment['name']},{assignment['id']}")
+            assignment_list[assignment['name']] = assignment['id']
+
+        if len(assignment_list) == 0:
+            raise Exception("ERROR: No assignments found!")
+
+        return assignment_list
+
     def get_student_ids_by_section(self, course_id: str, section_id: str, results: dict):
         """
         Get list of students from a particular section (by Canvas supplied Section ID) and store them in the dictionary
