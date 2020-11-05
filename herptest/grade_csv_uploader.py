@@ -15,7 +15,7 @@ VERSION_NUM = '0.9.9.4'
 
 # handle command line args
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='A program to run a set of tests for a programming assignment.')
+    parser = argparse.ArgumentParser(description='A program to upload a CSV for a rubric based assignment to Canvas')
     parser.add_help = True
     parser.add_argument('-V', '-v', '--version', action='version', version='%(prog)s ' + str(VERSION_NUM))
     parser.add_argument('-S', '-s', '--setupenv', action='store_true', help='Run the setup wizard for Canvas API Key Environment Variables')
