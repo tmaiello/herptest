@@ -161,13 +161,17 @@ class VmWrapper:
                 print("Error: could not grab " + filename + " for target " + target + ". Skipping.")
 
         sftp.close()
-        self.write_to_file(gen_errors, self._result_dir + "/" + target + "/" + RUN_LOG + ERR_LOG)
+        result_dir = self._result_dir + "/" + target + "/" + RUN_LOG + ERR_LOG
+        self.write_to_file(gen_errors, result_dir)
 
         ssh.close()
 
         # Shut down the VM for this target
         print("Shutting down VM...")
         self.dirty_shutdown()
+
+        # Return the file location of the run.log file
+        return result_dir
     
     def loop_for_shell(self):
         ssh = paramiko.SSHClient()
