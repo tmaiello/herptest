@@ -104,7 +104,6 @@ def run_suite_tests(framework, subject, proj_settings, submission):
     results = []
 
     if cfg.build.vm.is_vm == True:
-
         for project in proj_settings.projects:
             display_name, identifier, points = project
             context = proj_settings.initialize_project(identifier, framework, subject, proj_settings)
@@ -116,11 +115,12 @@ def run_suite_tests(framework, subject, proj_settings, submission):
 
             # Add the initial notes at the top
             data_set = [ [ "Number of tests: %d." % num_of_tests ], [] ]
-            data_set += [ [ 'Test No.', 'Score', 'Message', 'Desc.' ], [] ]
+            data_set += [ [ 'Test No.', 'Score', 'Message', 'Desc.' ] ]
 
             # Run the tests that have been staged to the VM for the submission
             run_log = cfg.build.vm_inst.run_tests(submission)
 
+            # Run library then harness
             tests = ["Library", "Harness"]
             i = 0
             total = 0
@@ -134,14 +134,19 @@ def run_suite_tests(framework, subject, proj_settings, submission):
                     if found != -1:
                         # Substring of the correct value, stripping newline
                         s = line[9 : len(line) - 1]
+
+                        # Split on score / total
                         split = s.find("/")
                         correct = int(s[:split])
                         score += correct
                         t = int(s[split + 1 :])
                         total += t
-                        data_set += [ [ tests[i], correct, '', '' ], [] ]
+
+                        # Add the score for the current test to the data set
+                        data_set += [ [ tests[i], correct, '', '' ] ]
+                        i += 1
             
-            data_set += [ [], ["Test Cases: %.2f (%.2f%%)" % (score * total, score * 100) ] ]
+            data_set += [ [], ["Test Cases: %.2f (%.2f%%)" % (score, (score / total) * 100) ] ]
 
             # Add to the results list.
             data_set = [ ["Project %s" % display_name] ] + data_set
@@ -282,8 +287,7 @@ def process_configuration(config):
 # For each submission, copy the base files, then the submission, into the destination folder.
 def prepare_and_test_submission(framework_context, submission):
     global cfg
-    print(os.getcwd())
-    print(submission)
+
     if not os.path.isdir(submission):
         return None
 
@@ -319,12 +323,13 @@ def prepare_and_test_submission(framework_context, submission):
     starting_dir = os.getcwd()
     results = run_suite_tests(framework_context, subject_context, cfg.project, submission)
     cfg.project.shutdown_subject(subject_context)
+
     if cfg.build.vm.is_vm:
         # Windows does not always path back to the right directory for VM projects, so explicitly change it
         os.chdir(cfg.build.vm.payload_dir)
-        print(os.getcwd())
     else:
         os.chdir(starting_dir)
+    
     return results
 
 
@@ -386,7 +391,6 @@ def main():
 
     # Prepare and run each submission.
     for submission in glob.glob(os.path.join(cfg.runtime.target_path, cfg.runtime.set)):
-        print(submission)
         submission_info = os.path.basename(submission).split("_", 1)
         student_name, lms_id = submission_info + ["NONE"] * (2 - len(submission_info))
         output_dir = os.path.join(cfg.general.result_path, os.path.basename(submission))
