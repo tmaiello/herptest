@@ -19,7 +19,7 @@ from . import toolbox
 from .vm_wrapper import VmWrapper
 from concurrent import futures
 
-VERSION = '0.9.9.3'
+VERSION = '0.9.9.4'
 
 cfg = argparse.Namespace()
 cfg.runtime = argparse.Namespace()
@@ -328,7 +328,7 @@ def main():
         cfg.build.vm_inst = vm
 
     # Build the environment components (only need to do this once.)
-    if cfg.build.framework_src and cfg.build.framework_bin:
+    if cfg.build.framework_src and cfg.build.framework_bin and cfg.build.vm.is_vm == False:
         if cfg.build.prep_cmd or cfg.build.compile_cmd:
             logging.info("Prepping / building framework environment... ")
             result_error = build_project(cfg.build.framework_src, cfg.build.framework_bin, cfg.build, "framework")
