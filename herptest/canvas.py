@@ -1,7 +1,9 @@
 import os
 from canvasapi import Canvas
 from csv import reader
+from canvasapi import assignment
 from dotenv import load_dotenv
+import urllib.request
 
 class CanvasWrapper:
     def __init__(self, API_URL, env_path):
@@ -32,6 +34,12 @@ class CanvasWrapper:
                     results.append(row)
         return results
 
+    def download_submissions(self, _course, assignment, path):
+        for assn in self.get_assignments(list(course.id for course in self.get_courses() if course.name == _course)[0]):
+            if(assignment == assn.name):
+                print(assn.submissions_download_url)
+                urllib.request.urlretrieve(assn.submissions_download_url, path)
+
     def push_grades(self, _course, assignment, path):
         for assn in self.get_assignments(list(course.id for course in self.get_courses() if course.name == _course)[0]):
             if(assignment == assn.name):
@@ -43,7 +51,7 @@ class CanvasWrapper:
                                 submission = {
                                     'posted_grade' : float(res[2])
                                 }
-                            )    
+                            )
 
 def main():
     url = "https://ufl.instructure.com" #input("Enter canvas URL here: ")
@@ -51,7 +59,8 @@ def main():
 
     canvas = CanvasWrapper(url, path)
 
-    canvas.push_grades("Sandbox: Blanchard", "PengTest", "../../Test Suite/Results")
+    print(canvas.download_submissions("Sandbox: Blanchard", "PengTest", './../../Test Suite/submissions.zip'))
+    #canvas.push_grades("Sandbox: Blanchard", "PengTest", "../../Test Suite/Results")
 
 # with open("API_URL.txt", 'r') as url:
 #     API_URL = url.readline().rstrip('\n')
