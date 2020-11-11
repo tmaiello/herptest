@@ -72,7 +72,7 @@ class CanvasUtil:
         """
         Get dictionary (name -> id) of courses in this semester
         """
-        response = requests.get(f"{self.canvas_api_url}/courses?enrollment_type=student&include=items&per_page=1000", auth=BearerAuth(self.token)) #enrollment_type changed from teacher
+        response = requests.get(f"{self.canvas_api_url}/courses?enrollment_type=teacher&include=items&per_page=1000", auth=BearerAuth(self.token)) #enrollment_type changed from teacher
         # print(response.json())
         content = response.json()
         enrollment_term_id = content[0]["enrollment_term_id"]
@@ -263,13 +263,12 @@ class CanvasUtil:
         for section in section_ids:
             self.get_student_ids_by_section(course_id, section, user_ids)
 
-        csv_path = input()
         try:
-            assignment_id = canvas_util.get_assignment_id_by_name(course_id, assignment_name)
-            students_from_file = canvas_util.populate_students_from_csv(csv_path)
-            rubric_id = canvas_util.get_rubric_id(course_id, assignment_id)
-            rubric_format = canvas_util.generate_rubric(course_id, rubric_id)
-            canvas_util.upload_grades(course_id, user_ids, assignment_id, students_from_file, rubric_format)
+            assignment_id = self.get_assignment_id_by_name(course_id, assignment_name)
+            students_from_file = self.populate_students_from_csv(csv_path)
+            rubric_id = self.get_rubric_id(course_id, assignment_id)
+            rubric_format = self.generate_rubric(course_id, rubric_id)
+            self.upload_grades(course_id, user_ids, assignment_id, students_from_file, rubric_format)
         except:
             return -1
 
