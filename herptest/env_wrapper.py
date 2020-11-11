@@ -35,3 +35,11 @@ class EnvWrapper:
     # Clear the contents of the canvas.env
     def clear_env(self):
         open('canvas.env', 'w').close()
+
+
+    # Set the key in canvas.env without CLI interaction
+    def set_env(self, token, token_type):
+        # set token_type=token in the canvas.env
+        with open('canvas.env', 'w') as f:
+            self.token = token_type + "=" + token +"\n"
+            f.write(self.token)

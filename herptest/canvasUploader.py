@@ -9,11 +9,13 @@ class CanvasUploader(QtWidgets.QWidget):
         super().__init__()
 
         #TODO fix this to actually create self.canvas
-        self.fetchCanvasUtil("path", "token")
+        self.setupCanvasInstances()
 
         #init trackers, updating this makes it simpler to pass this data to upload
         self.courseDict = None
+        self.assignmentDict = {}
         self.currentCourse = None
+        self.currentCourseId = None
         self.currentAssignment = None
         self.assignmentReady = False
         self.fileReady = False
@@ -98,8 +100,10 @@ class CanvasUploader(QtWidgets.QWidget):
         elif item.text().find("->") != -1:
             #go down a level
             courseNameIndex = self.activeModel.itemFromIndex(index.siblingAtColumn(0))
-            
             self.currentCourse = courseNameIndex.text()
+            courseIdIndex = self.activeModel.itemFromIndex(index.siblingAtColumn(1))
+            self.currentCourseId = courseIdIndex.text()
+
             self.showAssignments(courseNameIndex)
         elif self.mode == "assignments":
             self.currentAssignment = self.activeModel.itemFromIndex(index.siblingAtColumn(0)).text()
@@ -111,13 +115,15 @@ class CanvasUploader(QtWidgets.QWidget):
         self.approveUpload()
 
     def handleUpload(self):
-        #TODO invoke Tyler or Matt's code depending on whether self.modeSelectTests or self.modeSelectRubric is active
+        #TODO can we do this in a worker thread?
         if self.modeSelectTests.checkState() == QtCore.Qt.Checked:
             #test results mode, call matty's code
             print("test suite mode!")
+            #TODO call matty's code
         elif self.modeSelectRubric.checkState() == QtCore.Qt.Checked:
             #rubric mode, call tyler's code
             print("rubric mode!")
+            self.canvasUtil.process_and_upload_file(self.currentCourseId, self.currentAssignment, self.uploadPath)
         else:
             #neither was selected, create a warning dialog and do nothing
             dialog = QtWidgets.QMessageBox()
@@ -127,20 +133,16 @@ class CanvasUploader(QtWidgets.QWidget):
         print("upload {}".format(self.uploadPath))
         pass
 
-    def fetchCanvasUtil(self, dotenvpath, token_type):
+    def setupCanvasInstances(self):
         self.tokenName = "TEST"
-        self.canvas = None
-        #self.canvas = grade_csv_uploader.CanvasUtil(canvas_url, dotenv_path, token_type)
+        self.canvasUtil = None
+        self.canvasPath = "https://ufl.instructure.com/api/v1"
+        self.dotEnvPath = "canvas.env"
+        self.tokenType = "TOKEN"
+        self.canvasUtil = grade_csv_uploader.CanvasUtil(self.canvasPath, self.dotEnvPath, self.tokenType)
+
+
         pass
-
-    def fetchCourseList(self):
-        #courses = self.canvas.get_courses_this_semester() # dictionary with keys:course name, values:course id
-        courses = {}
-        courses["Course 1"] = 12361234
-        courses["Course 2"] = 16234123
-        courses["Course 3"] = 61234213
-
-        self.courseDict = courses
 
     def showCourses(self):
         self.mode = "courses"
@@ -149,7 +151,8 @@ class CanvasUploader(QtWidgets.QWidget):
         coursesModel.setHorizontalHeaderLabels(["Course Name", "Course ID", " "])
 
         if not self.courseDict:
-            self.fetchCourseList()     
+            self.courseDict = self.canvasUtil.get_courses_this_semester() # dictionary with keys:course name, values:course id
+     
 
         for course in self.courseDict.keys():
             courseName = QtGui.QStandardItem(course)
@@ -166,17 +169,18 @@ class CanvasUploader(QtWidgets.QWidget):
         for i in range(0,3):
             self.containerView.resizeColumnToContents(i)
 
-    def showAssignments(self, course):
+    def showAssignments(self, courseItem):
+        course = courseItem.text()
         self.mode = "assignments"
-        self.title.setText("Assignments for " + course.text())
+        self.title.setText("Assignments for " + course)
         assignmentsModel = QtGui.QStandardItemModel()
         assignmentsModel.setHorizontalHeaderLabels(["Assignment Name", "Assignment ID", "Graded"])
 
         
-        assignments = {}
-        assignments["Assignment 1"] = [61981981, True]
-        assignments["Assignment 2"] = [98139123, False]
-        assignments["Assignment 3"] = [98716230, True]
+        if course not in self.assignmentDict.keys() or not self.assignmentDict[course]:
+            self.assignmentDict[course] = self.canvasUtil.get_assignment_list(self.courseDict[course])
+        
+        assignments = self.assignmentDict[course]
 
         backSelect = QtGui.QStandardItem("<- Return to Courses")
         backSelect.setEditable(False)   
@@ -185,9 +189,9 @@ class CanvasUploader(QtWidgets.QWidget):
         for assignment in assignments.keys():
             assignmentName = QtGui.QStandardItem(assignment)
             assignmentName.setEditable(False)
-            assignmentId = QtGui.QStandardItem(str(assignments[assignment][0]))
+            assignmentId = QtGui.QStandardItem(str(assignments[assignment]))
             assignmentId.setEditable(False)
-            assignmentGraded = QtGui.QStandardItem(str(assignments[assignment][1]))
+            assignmentGraded = QtGui.QStandardItem(" ")
             assignmentGraded.setEditable(False)
             assignmentsModel.appendRow([assignmentName, assignmentId, assignmentGraded])
 

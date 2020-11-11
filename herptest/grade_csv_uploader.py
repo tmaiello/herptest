@@ -72,21 +72,27 @@ class CanvasUtil:
         """
         Get dictionary (name -> id) of courses in this semester
         """
-        response = requests.get(f"{self.canvas_api_url}/courses?enrollment_type=teacher", auth=BearerAuth(self.token))
+        response = requests.get(f"{self.canvas_api_url}/courses?enrollment_type=student&include=items&per_page=1000", auth=BearerAuth(self.token)) #enrollment_type changed from teacher
         # print(response.json())
         content = response.json()
         enrollment_term_id = content[0]["enrollment_term_id"]
         for course in content:  # Find the current enrollment term
-            enrollment_term_id = max(enrollment_term_id, int(course["enrollment_term_id"]))
+            try:
+                enrollment_term_id = max(enrollment_term_id, int(course["enrollment_term_id"]))
+            except:
+                pass
+
         # Filter for courses in the current term
         result = {}
         for course in content:
-            if course["enrollment_term_id"] == enrollment_term_id:
-                result[course["name"]] = int(course["id"])
-            ## ----------TEMPORARY FOR TESTING PURPOSES---------------
-            elif course["course_code"] == "BLANCHARD":
-                result[course["name"]] = int(course["id"])
-
+            try:
+                if course["enrollment_term_id"] == enrollment_term_id:
+                    result[course["name"]] = int(course["id"])
+                ## ----------TEMPORARY FOR TESTING PURPOSES---------------
+                elif course["course_code"] == "BLANCHARD":
+                    result[course["name"]] = int(course["id"])
+            except:
+                pass
         return result
 
     def get_section_ids(self, course_id: str) -> list:
@@ -128,7 +134,7 @@ class CanvasUtil:
 
     def get_assignment_list(self, course_id: str) -> dict:
         """
-        Get the id of the first assignment with a name that matches the input
+        Get the list of assignments for the specified course id
         """
         response = requests.get(f"{self.canvas_api_url}/courses/{course_id}/assignments?include=items&per_page=100", auth=BearerAuth(self.token))
         content = response.json()
@@ -251,6 +257,21 @@ class CanvasUtil:
 
                 counter = counter + 1
                 print(f"{counter} student(s) graded.")
+    def process_and_upload_file(self, course_id: str, assignment_name: str, csv_path: str):
+        user_ids = {}
+        for section in section_ids:
+            canvas_util.get_student_ids_by_section(course_id, section, user_ids)
+
+        csv_path = input()
+        try:
+            assignment_id = canvas_util.get_assignment_id_by_name(course_id, assignment_name)
+            students_from_file = canvas_util.populate_students_from_csv(csv_path)
+            rubric_id = canvas_util.get_rubric_id(course_id, assignment_id)
+            rubric_format = canvas_util.generate_rubric(course_id, rubric_id)
+            canvas_util.upload_grades(course_id, user_ids, assignment_id, students_from_file, rubric_format)
+        except:
+            return -1
+
 
 def env_setup():
     e = EnvWrapper()
@@ -285,13 +306,13 @@ def main():
 
     # CanvasUtil object, driver object for functionality, if you want beta or production, a different .env path, or token, enter here into constructor.
 
-    try:
-        courses = canvas_util.get_courses_this_semester()
-    except:
+    #try:
+    courses = canvas_util.get_courses_this_semester()
+    """except:
         print("| Canvas Util Object failed to be created. Is your API key valid?")
         print("| Hint: try using --setupenv to set up your environment variables.")
         print("└─> exiting with error")
-        exit(-1)
+        exit(-1) """
     course_names = list(courses.keys())
 
     print("-=- Listing all courses for which you have role: Teacher in current enrollemnt period -=-")
@@ -314,7 +335,7 @@ def main():
     section_ids = canvas_util.get_section_ids(course_id)
     print(f"└─> {len(section_ids)} section(s) found")
 
-    canvas_util.get_assignment_list(course_id)
+    #canvas_util.get_assignment_list(course_id)
 
     print("-=- Type some part of the title of your assignment - if it's \"Python Pitches\", type \"Pitches\" -=-")
     try:
