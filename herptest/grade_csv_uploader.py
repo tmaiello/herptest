@@ -93,7 +93,7 @@ class CanvasUtil:
         """
         Get a list of all section IDs in a specific course
         """
-        response = requests.get(f"{self.canvas_api_url}/courses/{course_id}/sections", auth=BearerAuth(self.token))
+        response = requests.get(f"{self.canvas_api_url}/courses/{course_id}/sections?include=items&per_page=100", auth=BearerAuth(self.token))
         content = response.json()
         section_ids = []
         for section in content:
@@ -104,7 +104,7 @@ class CanvasUtil:
         """
         Get the id of the first assignment with a name that matches the input
         """
-        response = requests.get(f"{self.canvas_api_url}/courses/{course_id}/assignments", auth=BearerAuth(self.token))
+        response = requests.get(f"{self.canvas_api_url}/courses/{course_id}/assignments?include=items&per_page=100", auth=BearerAuth(self.token))
         content = response.json()
         for assignment in content:
 
@@ -114,11 +114,23 @@ class CanvasUtil:
 
         raise Exception("ERROR: No matching assignment found!")
 
+    def get_assignment_by_id(self, course_id: str, assignment_id: int) -> str:
+        """
+        Get the id of the first assignment with a name that matches the input
+        """
+        response = requests.get(f"{self.canvas_api_url}/courses/{course_id}/assignments/{assignment_id}?include=items&per_page=100", auth=BearerAuth(self.token))
+        content = response.json()
+        if content['id'] == assignment_id:
+            print(f"| Found assignment: {content['name']}")
+            return str(content['id'])
+
+        raise Exception("ERROR: No matching assignment found!")
+
     def get_assignment_list(self, course_id: str) -> dict:
         """
         Get the id of the first assignment with a name that matches the input
         """
-        response = requests.get(f"{self.canvas_api_url}/courses/{course_id}/assignments", auth=BearerAuth(self.token))
+        response = requests.get(f"{self.canvas_api_url}/courses/{course_id}/assignments?include=items&per_page=100", auth=BearerAuth(self.token))
         content = response.json()
         assignment_list = {}
         for assignment in content:
@@ -215,9 +227,10 @@ class CanvasUtil:
                 # PROMPT WHEN OVERWRITING GRADES
                 if content["grade"] is not None:
                     print(f"{student_name}: grade not null!")
-                    print("Confirm grade replacement with 'Y'.")
-                    if input().lower() != 'y':
-                        sys.exit(0)
+                    # print("Confirm grade replacement with 'Y'.")
+                    # if input().lower() != 'y':
+                    #     sys.exit(0)
+                    print(f"replacing grade of {student_name}")
 
                 payload = {}
 
@@ -301,6 +314,8 @@ def main():
     section_ids = canvas_util.get_section_ids(course_id)
     print(f"└─> {len(section_ids)} section(s) found")
 
+    canvas_util.get_assignment_list(course_id)
+
     print("-=- Type some part of the title of your assignment - if it's \"Python Pitches\", type \"Pitches\" -=-")
     try:
         assignment_name = input()
@@ -310,6 +325,11 @@ def main():
         print("└─> exiting with error")
         exit(-1)
     print(f"└─> Found assignment ID: {assignment_id}")
+
+    # print("-=- Type the ID of your assignment. Found in Canvas URL after assignments/ -=-")
+    # assignment_id = canvas_util.get_assignment_by_id(course_id,assignment_id=4346021)
+    # print(f"└─> Found assignment ID: {assignment_id}")
+
 
     user_ids = {}
     for section in section_ids:
