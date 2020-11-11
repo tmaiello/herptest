@@ -44,7 +44,7 @@ class CanvasWrapper:
         for assn in self.get_assignments(list(course.id for course in self.get_courses() if course.name == _course)[0]):
             if(assignment == assn.name):
                 for sub in assn.get_submissions():
-                    for res in self.get_results(path + "/summary.csv"):
+                    for res in self.get_results(path):
                         if(str(sub.user_id) == res[1]):
                             print("Score of " + res[0] + ", ID: " + res[1] + " changed from " + str(sub.score) + " to " + str(float(res[2])) + ".")
                             sub.edit(
