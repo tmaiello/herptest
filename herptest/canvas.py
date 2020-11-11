@@ -59,23 +59,8 @@ def main():
 
     canvas = CanvasWrapper(url, path)
 
-    print(canvas.download_submissions("Sandbox: Blanchard", "PengTest", './../../Test Suite/submissions.zip'))
+    #print(canvas.download_submissions("Sandbox: Blanchard", "PengTest", './../../Test Suite/submissions.zip'))
     #canvas.push_grades("Sandbox: Blanchard", "PengTest", "../../Test Suite/Results")
-
-# with open("API_URL.txt", 'r') as url:
-#     API_URL = url.readline().rstrip('\n')
-
-# with open("API_Key.txt", 'r') as key:
-#     API_Key = key.readline().rstrip('\n')
-
-# with open("Course.txt", 'r') as code:
-#     code = int(code.readline().rstrip('\n'))
-    
-# with open("Assignment.txt", 'r') as ass:
-#     ass_name = ass.readline().rstrip('\n')
-
-# with open("Results.txt", 'r') as result:
-#     summary = result.readline().rstrip('\n')
 
 if __name__ == "__main__":
     main()
