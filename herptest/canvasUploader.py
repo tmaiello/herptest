@@ -134,7 +134,6 @@ class CanvasUploader(QtWidgets.QWidget):
         pass
 
     def setupCanvasInstances(self):
-        self.tokenName = "TEST"
         self.canvasUtil = None
         self.canvasPath = "https://ufl.instructure.com/api/v1"
         self.dotEnvPath = "canvas.env"
@@ -146,7 +145,7 @@ class CanvasUploader(QtWidgets.QWidget):
 
     def showCourses(self):
         self.mode = "courses"
-        self.title.setText("Courses for " + self.tokenName)
+        self.title.setText("List of Courses")
         coursesModel = QtGui.QStandardItemModel()
         coursesModel.setHorizontalHeaderLabels(["Course Name", "Course ID", " "])
 
@@ -174,7 +173,7 @@ class CanvasUploader(QtWidgets.QWidget):
         self.mode = "assignments"
         self.title.setText("Assignments for " + course)
         assignmentsModel = QtGui.QStandardItemModel()
-        assignmentsModel.setHorizontalHeaderLabels(["Assignment Name", "Assignment ID", "Graded"])
+        assignmentsModel.setHorizontalHeaderLabels(["Assignment Name", "Assignment ID"])
 
         
         if course not in self.assignmentDict.keys() or not self.assignmentDict[course]:
@@ -191,9 +190,7 @@ class CanvasUploader(QtWidgets.QWidget):
             assignmentName.setEditable(False)
             assignmentId = QtGui.QStandardItem(str(assignments[assignment]))
             assignmentId.setEditable(False)
-            assignmentGraded = QtGui.QStandardItem(" ")
-            assignmentGraded.setEditable(False)
-            assignmentsModel.appendRow([assignmentName, assignmentId, assignmentGraded])
+            assignmentsModel.appendRow([assignmentName, assignmentId])
 
         self.coursesActive = False
         self.activeModel = assignmentsModel

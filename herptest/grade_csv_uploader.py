@@ -258,9 +258,10 @@ class CanvasUtil:
                 counter = counter + 1
                 print(f"{counter} student(s) graded.")
     def process_and_upload_file(self, course_id: str, assignment_name: str, csv_path: str):
+        section_ids = self.get_section_ids(course_id)
         user_ids = {}
         for section in section_ids:
-            canvas_util.get_student_ids_by_section(course_id, section, user_ids)
+            self.get_student_ids_by_section(course_id, section, user_ids)
 
         csv_path = input()
         try:
