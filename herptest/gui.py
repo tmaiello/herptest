@@ -1,7 +1,7 @@
 import sys
 import time, random, pathlib
 from PySide2 import QtCore, QtWidgets, QtGui
-from . import homePage, testSuiteCreator, resultsPage
+from . import homePage, testSuiteCreator, resultsPage, vmPage
 
 
         
@@ -17,6 +17,8 @@ def initWindow():
     testSuiteCreatorInst = tabContainer.widget(1)
     tabContainer.addTab(resultsPage.ResultsPage(), "Test Results")
     resultsPageInst = tabContainer.widget(2)
+    tabContainer.addTab(vmPage.VmPage(), "VM Config")
+    vmPageInst = tabContainer.widget(3)
 
     #give the home page the funcion to call when the SHOW RESULTS button is clicked
     #pass the function to set the results page as active to the results page so data can load first
