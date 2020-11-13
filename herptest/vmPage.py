@@ -73,29 +73,29 @@ class VmPage(QtWidgets.QWidget):
         self.bootLabel = QtWidgets.QLabel("VM Boot Time (in seconds):")
         self.bootLabel.setMaximumHeight(30)
         self.layout.addWidget(self.bootLabel, 14, 0)
-        self.bootField = QtWidgets.QLineEdit("70")
+        self.bootField = QtWidgets.QLineEdit("")
         self.bootField.setFixedWidth(50)
         self.layout.addWidget(self.bootField, 15, 0)
 
     def createFileInfoFields(self):
-        self.stagingLabel = QtWidgets.QLabel("Staging Files:")
+        self.stagingLabel = QtWidgets.QLabel("Staging Files (enter as comma separated list):")
         self.stagingLabel.setMaximumHeight(30)
         self.layout.addWidget(self.stagingLabel, 16, 0)
-        self.stagingField = QtWidgets.QLineEdit("Enter as comma separated list")
+        self.stagingField = QtWidgets.QLineEdit("")
         self.stagingField.setFixedWidth(500)
         self.layout.addWidget(self.stagingField, 17, 0)
 
-        self.payloadLabel = QtWidgets.QLabel("Payload Files:")
+        self.payloadLabel = QtWidgets.QLabel("Payload Files (enter as comma separated list):")
         self.payloadLabel.setMaximumHeight(30)
         self.layout.addWidget(self.payloadLabel, 18, 0)
-        self.payloadField = QtWidgets.QLineEdit("Enter as comma separated list")
+        self.payloadField = QtWidgets.QLineEdit("")
         self.payloadField.setFixedWidth(500)
         self.layout.addWidget(self.payloadField, 19, 0)
 
-        self.resultLabel = QtWidgets.QLabel("Result Files:")
+        self.resultLabel = QtWidgets.QLabel("Result Files (enter as comma separated list):")
         self.resultLabel.setMaximumHeight(30)
         self.layout.addWidget(self.resultLabel, 20, 0)
-        self.resultField = QtWidgets.QLineEdit("Enter as comma separated list")
+        self.resultField = QtWidgets.QLineEdit("")
         self.resultField.setFixedWidth(500)
         self.layout.addWidget(self.resultField, 21, 0)
 
@@ -165,6 +165,13 @@ class VmPage(QtWidgets.QWidget):
         self.layout.addWidget(self.stageField, 17, 1)
 
     def writeConfig(self):
+        # First verify that all input fields have been filled in
+        isComplete = self.verifyInput()
+
+        if not isComplete:
+            # If the input fields are not filled in, then do not create config
+            return
+
         # Get the current directory
         cur_dir = os.getcwd()
 
@@ -204,6 +211,40 @@ class VmPage(QtWidgets.QWidget):
 
         # Change back to the initial directory
         os.chdir(cur_dir)
+
+    def verifyInput(self):
+        varList = [self.typeDropdown.currentText(), self.nameField.text(), self.snapshotField.text(), \
+            self.ipField.text(), self.portField.text(), self.userField.text(), self.passwordField.text(), \
+            self.bootField.text(), self.stagingField.text(), self.payloadField.text(), self.resultField.text(), \
+            self.stagdirField.text(), self.paydirField.text(), self.resultdirField.text(), self.buildField.text(), \
+            self.stageField.text(), self.remdirField.text(), self.remstagdirField.text(), self.rempaydirField.text(), \
+            self.remresdirField.text()]
+
+        error = ""
+        isComplete = True
+
+        for v in varList:
+            if v == "":
+                error += "Please provide input to all fields. "
+                isComplete = False
+                break
+
+        if not self.bootField.text().isdigit():
+            error += "Please provide a positive integer for boot time. "
+            isComplete = False
+
+        if not self.portField.text().isdigit():
+            error += "Please provide a positive integer for port number. "
+            isComplete = False
+
+        if not isComplete:
+            # Create a message box popup with the error, if there is one
+            msgBox = QtWidgets.QMessageBox()
+            msgBox.setText(error)
+            msgBox.exec_()
+
+        return isComplete
+        
     
     def splitString(self, string, dirType):
         # Remove any spaces
