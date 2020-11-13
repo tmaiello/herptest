@@ -1,5 +1,5 @@
 from PySide2 import QtCore, QtWidgets, QtGui
-import os
+import os, subprocess
 
 class VmPage(QtWidgets.QWidget):
     def __init__(self):
@@ -165,9 +165,13 @@ class VmPage(QtWidgets.QWidget):
         self.layout.addWidget(self.stageField, 17, 1)
 
     def writeConfig(self):
-        print("write called")
+        # Get the current directory
         cur_dir = os.getcwd()
+
+        # Change the directory to the root of the test suite
         os.chdir(self.paydirField.text())
+
+        # Write the config variables to config.py
         with open("config.py", "a+") as file:
             content = "build.vm.is_vm = True\n"
             content += "build.vm.type = \"" + self.typeDropdown.currentText() + "\"\n"
@@ -178,7 +182,12 @@ class VmPage(QtWidgets.QWidget):
             content += "build.vm.user = \"" + self.userField.text() + "\"\n"
             content += "build.vm.passwd = \"" + self.passwordField.text() + "\"\n"
             content += "build.vm.boot_time = " + self.bootField.text() + "\n"
-            # TODO split files on comma
+            
+            # The files are entered as a comma list, so split the string
+            content += self.splitString(self.stagingField.text(), "staging")
+            content += self.splitString(self.payloadField.text(), "payload")
+            content += self.splitString(self.resultField.text(), "result")
+
             content += "build.vm.staging_dir = \"" + self.stagdirField.text() + "\"\n"
             content += "build.vm.payload_dir = \"" + self.paydirField.text() + "\"\n"
             content += "build.vm.result_dir = \"" + self.resultdirField.text() + "\"\n"
@@ -189,4 +198,30 @@ class VmPage(QtWidgets.QWidget):
             content += "build.vm.remote_payload_dir = \"" + self.rempaydirField.text() + "\"\n"
             content += "build.vm.remote_result_dir = \"" + self.remresdirField.text() + "\"\n"
             file.write(content)
+        
+        # Execute the build on command prompt
+        subprocess.Popen(['cmd.exe', '/C', 'herp', '.', '.\Projects'])
+
+        # Change back to the initial directory
         os.chdir(cur_dir)
+    
+    def splitString(self, string, dirType):
+        # Remove any spaces
+        staging = string.replace(' ','')
+
+        # Split on commas
+        l = staging.split(',')
+
+        content = ""
+        content += "build.vm." + dirType + "_files = ["
+        i = 0
+
+        # Iterate over every file, adding it to the string formatted correctly
+        for f in l:
+            content += "\"" + f + "\""
+            if i == len(l) - 1:
+                content += "]\n"
+            else:
+                content += ", "
+                i += 1
+        return content
