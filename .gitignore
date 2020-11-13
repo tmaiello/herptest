@@ -3,7 +3,7 @@ dist/
 MANIFEST
 build/
 herptest.egg-info/
-herptest/*.txt
+*.txt
 *.env
 venv
 .idea

@@ -33,6 +33,7 @@ setup(
             'herp = herptest.run_test_suite:main',
             'peng-gui = herptest.gui:main',
             'csv-upload = herptest.grade_csv_uploader:main'
+            'canvas-push = herptest.canvas:main'
         ]
     }
 )
