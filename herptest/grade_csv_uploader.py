@@ -75,7 +75,11 @@ class CanvasUtil:
         response = requests.get(f"{self.canvas_api_url}/courses?enrollment_type=teacher&include=items&per_page=1000", auth=BearerAuth(self.token)) #enrollment_type changed from teacher
         # print(response.json())
         content = response.json()
-        enrollment_term_id = content[0]["enrollment_term_id"]
+        try:
+            enrollment_term_id = content[0]["enrollment_term_id"]
+        except:
+            #if there are no valid courses, return an empty dict
+            return {}
         for course in content:  # Find the current enrollment term
             try:
                 enrollment_term_id = max(enrollment_term_id, int(course["enrollment_term_id"]))

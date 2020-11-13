@@ -54,14 +54,15 @@ def createStatusBar(window):
 
 def main():
     app = QtWidgets.QApplication([])
-    window = initWindow()
 
     if len(sys.argv) > 1 and sys.argv[1] == "--no-splash":
+        window = initWindow()
         window.show()
     else:
         splash = createSplash()
         splash.show()
-        time.sleep(2.5)
+        window = initWindow()
+        #time.sleep(2.5)
         window.show()
         splash.finish(window)
 
