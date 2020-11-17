@@ -1,5 +1,6 @@
 from PySide2 import QtCore, QtWidgets, QtGui
 import os, subprocess
+from pathlib import Path, PureWindowsPath
 
 class VmPage(QtWidgets.QWidget):
     def __init__(self):
@@ -106,6 +107,10 @@ class VmPage(QtWidgets.QWidget):
         self.stagdirField = QtWidgets.QLineEdit("")
         self.stagdirField.setFixedWidth(500)
         self.layout.addWidget(self.stagdirField, 1, 1)
+        self.stagingSelect = QtWidgets.QPushButton("Browse")
+        self.stagingSelect.setFixedWidth(100)
+        self.stagingSelect.clicked.connect(lambda: self.filePicker("Staging"))
+        self.layout.addWidget(self.stagingSelect, 1, 2)
 
         self.paydirLabel = QtWidgets.QLabel("Payload Directory (Test Suite Directory):")
         self.paydirLabel.setMaximumHeight(30)
@@ -113,6 +118,10 @@ class VmPage(QtWidgets.QWidget):
         self.paydirField = QtWidgets.QLineEdit("")
         self.paydirField.setFixedWidth(500)
         self.layout.addWidget(self.paydirField, 3, 1)
+        self.payloadSelect = QtWidgets.QPushButton("Browse")
+        self.payloadSelect.setFixedWidth(100)
+        self.payloadSelect.clicked.connect(lambda: self.filePicker("Payload"))
+        self.layout.addWidget(self.payloadSelect, 3, 2)
 
         self.resultdirLabel = QtWidgets.QLabel("Results Directory:")
         self.resultdirLabel.setMaximumHeight(30)
@@ -120,6 +129,10 @@ class VmPage(QtWidgets.QWidget):
         self.resultdirField = QtWidgets.QLineEdit("")
         self.resultdirField.setFixedWidth(500)
         self.layout.addWidget(self.resultdirField, 5, 1)
+        self.resultSelect = QtWidgets.QPushButton("Browse")
+        self.resultSelect.setFixedWidth(100)
+        self.resultSelect.clicked.connect(lambda: self.filePicker("Result"))
+        self.layout.addWidget(self.resultSelect, 5, 2)
 
         self.remdirLabel = QtWidgets.QLabel("Remote Project Directory:")
         self.remdirLabel.setMaximumHeight(30)
@@ -164,6 +177,26 @@ class VmPage(QtWidgets.QWidget):
         self.stageField.setFixedWidth(500)
         self.layout.addWidget(self.stageField, 17, 1)
 
+    def filePicker(self, dir):
+        # Determine which directory line it was called on
+        if dir == "Staging":
+            widget = self.stagdirField
+        elif dir == "Payload":
+            widget = self.paydirField
+        elif dir == "Result":
+            widget = self.resultdirField
+        else:
+            return
+        
+        dialog = QtWidgets.QFileDialog(self)
+        dialog.setFileMode(QtWidgets.QFileDialog.Directory)
+        dialog.setWindowTitle("Select " + dir + " Directory")
+        dialog.setOptions(QtWidgets.QFileDialog.ShowDirsOnly)
+        dialog.setDirectory(widget.text())
+
+        if dialog.exec_():
+            widget.setText(dialog.selectedFiles()[0])
+
     def writeConfig(self):
         # First verify that all input fields have been filled in
         isComplete = self.verifyInput()
@@ -195,9 +228,14 @@ class VmPage(QtWidgets.QWidget):
             content += self.splitString(self.payloadField.text(), "payload")
             content += self.splitString(self.resultField.text(), "result")
 
-            content += "build.vm.staging_dir = \"" + self.stagdirField.text() + "\"\n"
-            content += "build.vm.payload_dir = \"" + self.paydirField.text() + "\"\n"
-            content += "build.vm.result_dir = \"" + self.resultdirField.text() + "\"\n"
+            # Convert WSL paths to Windows paths
+            stagDir = self.convertPath(self.stagdirField.text())
+            content += "build.vm.staging_dir = \"" + stagDir + "\"\n"
+            payDir = self.convertPath(self.paydirField.text())
+            content += "build.vm.payload_dir = \"" + payDir + "\"\n"
+            resultDir = self.convertPath(self.resultdirField.text())
+            content += "build.vm.result_dir = \"" + resultDir + "\"\n"
+
             content += "build.vm.build_cmd = \"" + self.buildField.text() + "\"\n"
             content += "build.vm.stage_cmd = \"" + self.stageField.text() + "\"\n"
             content += "build.vm.remote_proj_dir = \"" + self.remdirField.text() + "\"\n"
@@ -211,6 +249,15 @@ class VmPage(QtWidgets.QWidget):
 
         # Change back to the initial directory
         os.chdir(cur_dir)
+
+    def convertPath(self, path):
+        # Convert WSL paths to Windows paths using WSL's built in wslpath command
+        process = subprocess.Popen(['wslpath', '-w', path], stdout=subprocess.PIPE)
+        windows_path = process.stdout.readline().decode('utf-8')
+
+        # This comes with a new line, so strip it off
+        windows_path = windows_path[:len(windows_path) - 1]
+        return windows_path
 
     def verifyInput(self):
         varList = [self.typeDropdown.currentText(), self.nameField.text(), self.snapshotField.text(), \
@@ -240,6 +287,7 @@ class VmPage(QtWidgets.QWidget):
         if not isComplete:
             # Create a message box popup with the error, if there is one
             msgBox = QtWidgets.QMessageBox()
+            msgBox.setWindowTitle("Error generating config")
             msgBox.setText(error)
             msgBox.exec_()
 
