@@ -245,7 +245,14 @@ class VmPage(QtWidgets.QWidget):
             file.write(content)
         
         # Execute the build on command prompt
-        subprocess.Popen(['cmd.exe', '/C', 'herp', '.', '.\Projects'])
+        process = subprocess.Popen(['cmd.exe', '/C', 'herp', '.', '.\Projects'], stderr=subprocess.PIPE)
+        error = process.stderr.readline().decode('utf-8')
+        if error != "":
+            # If there was an error running herp, open a message box to alert the user of the error
+            msgBox = QtWidgets.QMessageBox()
+            msgBox.setWindowTitle("Error running herp")
+            msgBox.setText("Error running herp! Please ensure that it is installed on Command Prompt.\nError: " + error)
+            msgBox.exec_()
 
         # Change back to the initial directory
         os.chdir(cur_dir)
@@ -260,6 +267,7 @@ class VmPage(QtWidgets.QWidget):
         return windows_path
 
     def verifyInput(self):
+        # List of all fields on the page
         varList = [self.typeDropdown.currentText(), self.nameField.text(), self.snapshotField.text(), \
             self.ipField.text(), self.portField.text(), self.userField.text(), self.passwordField.text(), \
             self.bootField.text(), self.stagingField.text(), self.payloadField.text(), self.resultField.text(), \
@@ -271,11 +279,13 @@ class VmPage(QtWidgets.QWidget):
         isComplete = True
 
         for v in varList:
+            # Check all fields for input
             if v == "":
                 error += "Please provide input to all fields. "
                 isComplete = False
                 break
 
+        # Check if the boot and port fields contain positive integers
         if not self.bootField.text().isdigit():
             error += "Please provide a positive integer for boot time. "
             isComplete = False
