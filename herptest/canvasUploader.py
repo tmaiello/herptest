@@ -1,7 +1,7 @@
 from PySide2 import QtCore, QtWidgets, QtGui
 import os, subprocess
 import numpy as np
-from . import grade_csv_uploader
+from . import grade_csv_uploader, canvas
 
 class CanvasUploader(QtWidgets.QWidget):
 
@@ -24,7 +24,7 @@ class CanvasUploader(QtWidgets.QWidget):
         self.title = QtWidgets.QLabel()
 
         self.containerView = QtWidgets.QTreeView()
-        self.showCourses() #change later to fetch REAL courses from canvas
+        self.showCourses() 
         
         self.containerView.clicked[QtCore.QModelIndex].connect(self.handleSelection)
 
@@ -120,6 +120,7 @@ class CanvasUploader(QtWidgets.QWidget):
             #test results mode, call matty's code
             print("test suite mode!")
             #TODO call matty's code
+            self.canvasWrapper.push_grades(self.currentCourse, self.currentAssignment, self.uploadPath)
         elif self.modeSelectRubric.checkState() == QtCore.Qt.Checked:
             #rubric mode, call tyler's code
             print("rubric mode!")
@@ -140,6 +141,7 @@ class CanvasUploader(QtWidgets.QWidget):
         self.tokenType = "TOKEN"
         self.canvasUtil = grade_csv_uploader.CanvasUtil(self.canvasPath, self.dotEnvPath, self.tokenType)
 
+        self.canvasWrapper = canvas.CanvasWrapper(canvasPath, canvas.env)
 
         pass
 
