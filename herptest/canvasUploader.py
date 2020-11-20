@@ -132,18 +132,19 @@ class CanvasUploader(QtWidgets.QWidget):
             dialog.setWindowTitle('Select an Upload Mode!')
             dialog.exec_()
         print("upload {}".format(self.uploadPath))
-        pass
+        
 
     def setupCanvasInstances(self):
         self.canvasUtil = None
         self.canvasPath = "https://ufl.instructure.com/api/v1"
+        self.canvasBasePath = "https://ufl.instructure.com"
         self.dotEnvPath = "canvas.env"
         self.tokenType = "TOKEN"
         self.canvasUtil = grade_csv_uploader.CanvasUtil(self.canvasPath, self.dotEnvPath, self.tokenType)
 
-        self.canvasWrapper = canvas.CanvasWrapper(canvasPath, canvas.env)
+        self.canvasWrapper = canvas.CanvasWrapper(self.canvasBasePath, self.dotEnvPath)
 
-        pass
+        
 
     def showCourses(self):
         self.mode = "courses"
