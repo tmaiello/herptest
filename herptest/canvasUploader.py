@@ -1,25 +1,44 @@
 from PySide2 import QtCore, QtWidgets, QtGui
 import os, subprocess
 import numpy as np
-from . import grade_csv_uploader, canvas
+from . import grade_csv_uploader, canvas, env_dialog
 
 class CanvasUploader(QtWidgets.QWidget):
 
     def __init__(self):
         super().__init__()
 
-        #TODO fix this to actually create self.canvas
-        self.setupCanvasInstances()
-
-        #init trackers, updating this makes it simpler to pass this data to upload
         self.courseDict = None
         self.assignmentDict = {}
+        #init trackers, updating this makes it simpler to pass this data to upload
         self.currentCourse = None
         self.currentCourseId = None
         self.currentAssignment = None
         self.assignmentReady = False
         self.fileReady = False
+        self.canvasEnvMissing = False
+        self.setupCanvasInstances()
+
+        if self.canvasEnvMissing:
+            #setupCanvasInstances sets this true if there was an issue with setup, show the dialog to fetch the env
+            self.envDialog = env_dialog.EnvDialog(lambda: self.handleEnvLoaded())
+            self.setLayout(self.envDialog.layout)
+        else:
+            #canvas env loaded properly, load the UI
+            self.createUI()
+
+
+
+
+    def handleEnvLoaded(self):
+        #print("callback success")
         
+        QtWidgets.QWidget().setLayout(self.layout())
+        self.createUI()
+        
+    
+
+    def createUI(self):
         self.layout = QtWidgets.QVBoxLayout()
         self.title = QtWidgets.QLabel()
 
@@ -71,6 +90,7 @@ class CanvasUploader(QtWidgets.QWidget):
         self.layout.addLayout(self.uploadContainer)
         self.setLayout(self.layout)
 
+
     def approveUpload(self):
         if self.fileReady and self.assignmentReady:
             self.uploadButton.setEnabled(True)
@@ -110,8 +130,8 @@ class CanvasUploader(QtWidgets.QWidget):
             self.assignmentReady = True
         elif self.mode == "courses":
             self.currentCourse = self.activeModel.itemFromIndex(index.siblingAtColumn(0)).text()
-        print("current course: " + str(self.currentCourse))
-        print("current assignment: " + str(self.currentAssignment))
+        #print("current course: " + str(self.currentCourse))
+        #print("current assignment: " + str(self.currentAssignment))
         self.approveUpload()
 
     def handleUpload(self):
@@ -119,7 +139,7 @@ class CanvasUploader(QtWidgets.QWidget):
         if self.modeSelectTests.checkState() == QtCore.Qt.Checked:
             #test results mode, call matty's code
             print("test suite mode!")
-            #TODO call matty's code
+            
             self.canvasWrapper.push_grades(self.currentCourse, self.currentAssignment, self.uploadPath)
         elif self.modeSelectRubric.checkState() == QtCore.Qt.Checked:
             #rubric mode, call tyler's code
@@ -131,7 +151,7 @@ class CanvasUploader(QtWidgets.QWidget):
             dialog.setText('Select either "Structured Rubric" or "Test Suite Results " mode in order to upload.')
             dialog.setWindowTitle('Select an Upload Mode!')
             dialog.exec_()
-        print("upload {}".format(self.uploadPath))
+        #print("upload {}".format(self.uploadPath))
         
 
     def setupCanvasInstances(self):
@@ -140,9 +160,13 @@ class CanvasUploader(QtWidgets.QWidget):
         self.canvasBasePath = "https://ufl.instructure.com"
         self.dotEnvPath = "canvas.env"
         self.tokenType = "TOKEN"
-        self.canvasUtil = grade_csv_uploader.CanvasUtil(self.canvasPath, self.dotEnvPath, self.tokenType)
+        try:
+            self.canvasUtil = grade_csv_uploader.CanvasUtil(self.canvasPath, self.dotEnvPath, self.tokenType)
 
-        self.canvasWrapper = canvas.CanvasWrapper(self.canvasBasePath, self.dotEnvPath)
+            self.canvasWrapper = canvas.CanvasWrapper(self.canvasBasePath, self.dotEnvPath)
+        except:
+            print("Something went wrong, either the canvas.env does not exist or it does not contain a token with the type TOKEN")
+            self.canvasEnvMissing = True
 
         
 
@@ -154,14 +178,20 @@ class CanvasUploader(QtWidgets.QWidget):
 
         if not self.courseDict:
             self.courseDict = self.canvasUtil.get_courses_this_semester() # dictionary with keys:course name, values:course id
-     
+
+        if len(self.courseDict.keys()) == 0:
+            #No active courses available
+            self.courseDict["No Active Courses Found"] = ""   
 
         for course in self.courseDict.keys():
             courseName = QtGui.QStandardItem(course)
             courseName.setEditable(False)
             courseId = QtGui.QStandardItem(str(self.courseDict[course]))
             courseId.setEditable(False)
-            expandCourse = QtGui.QStandardItem("Expand ->")
+            if courseId.text() == "":
+                expandCourse = QtGui.QStandardItem("")
+            else:
+                expandCourse = QtGui.QStandardItem("Expand ->")
             expandCourse.setEditable(False)
             coursesModel.appendRow([courseName, courseId, expandCourse])
         
@@ -187,6 +217,10 @@ class CanvasUploader(QtWidgets.QWidget):
         backSelect = QtGui.QStandardItem("<- Return to Courses")
         backSelect.setEditable(False)   
         assignmentsModel.appendRow([backSelect])
+
+        if len(assignments.keys()) == 0:
+            #no active assignments available
+            assignments["No Assignments Found"] = ""  
 
         for assignment in assignments.keys():
             assignmentName = QtGui.QStandardItem(assignment)
