@@ -1,37 +1,29 @@
 from PySide2 import QtCore, QtWidgets, QtGui
-import os, subprocess
+import os, subprocess, json
 
 class TestSuiteCreator(QtWidgets.QWidget):
 
     class TestCase(QtWidgets.QWidget):
-        def __init__(self, name, defaultTestValue):
+        def __init__(self, name, defaultTestValue, defaultMatchType):
             super().__init__()
             self.layout = QtWidgets.QHBoxLayout()
-
-            self.left = QtWidgets.QVBoxLayout()
-            self.right = QtWidgets.QVBoxLayout()
+            self.textBox = QtWidgets.QVBoxLayout()
             self.inputTitle = QtWidgets.QLabel("Enter input for test case:")
             self.inputTitle.setFixedHeight(30)
-            self.outputTitle = QtWidgets.QLabel("Enter output for test case:")
-            self.outputTitle.setFixedHeight(30)
             self.inputText = QtWidgets.QPlainTextEdit()
-            self.outputText = QtWidgets.QPlainTextEdit()
-            self.left.addWidget(self.inputTitle)
-            self.left.addWidget(self.inputText)
-            self.right.addWidget(self.outputTitle)
-            self.right.addWidget(self.outputText)
-
-            self.layout.addLayout(self.left)
-            self.layout.addLayout(self.right)
-
+            self.textBox.addWidget(self.inputTitle)
+            self.textBox.addWidget(self.inputText)
+            self.layout.addLayout(self.textBox)
             self.setLayout(self.layout)
             self.name = name
             self.points = defaultTestValue
+            self.matchType = defaultMatchType
 
-    def __init__(self, defaultTestValue=10):
+    def __init__(self, defaultTestValue=10, defaultMatchType=0):
         super().__init__()
 
         self.defaultTestValue = defaultTestValue
+        self.defaultMatchType = defaultMatchType
 
         self.containerLayout = QtWidgets.QVBoxLayout()
         self.containerLayout.setContentsMargins(0,0,0,0)
@@ -66,15 +58,20 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.activeDirectory = activeDirectory
         self.breadcrumb.setText("Active Test Suite: " + self.activeDirectory)
 
+    #TODO - change Total Points behavior when no test cases present
     def updateTotalPoints(self):
-        #make sure that the current test case gets updated
-        self.testCaseStack.widget(self.testCaseStack.currentIndex()).points = self.testCasePoints.value()
+        #make sure that the current test case gets updated, will not call on Add Test Case widget
+        if self.testCaseStack.count() != 1:
+            self.testCaseStack.widget(self.testCaseStack.currentIndex()).points = self.testCasePoints.value()
 
         total = 0
         for index in range(0, self.testCaseStack.count()-1):
             total += self.testCaseStack.widget(index).points
         self.totalPoints.setText(str(total) + " Total Points | " + str(self.testCaseStack.count()-1) + " test cases")
         
+    def updateMatchType(self, index):
+        # match type converted to values used in tests.py on test suite code generation
+        self.testCaseStack.widget(self.testCaseStack.currentIndex()).matchType = index  
 
     def createMenuBar(self):
         self.menuBar = QtWidgets.QMenuBar()
@@ -113,7 +110,13 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.editMenuPaste.setShortcuts(QtGui.QKeySequence.Paste)
         self.editMenuPaste.triggered.connect(lambda: self.handleEditAction("Paste"))
 
-
+        self.testCaseMenu = self.menuBar.addMenu("Test Cases")
+        self.testCaseAdd = self.testCaseMenu.addAction("Add Test Case")
+        self.testCaseAdd.triggered.connect(lambda: self.addTestCase())
+        self.testCaseRename = self.testCaseMenu.addAction("Rename Test Case")
+        self.testCaseRename.triggered.connect(lambda: self.renameTestCase(self.testCaseStack.currentIndex()))
+        self.testCaseDelete = self.testCaseMenu.addAction("Delete Test Case")
+        self.testCaseDelete.triggered.connect(lambda: self.removeTestCase(self.testCaseStack.currentIndex()))
 
         self.languageMenu = self.menuBar.addMenu("Language")
         self.languageMenuGroup = QtWidgets.QActionGroup(self.languageMenu)
@@ -136,10 +139,6 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.testCaseStack =  QtWidgets.QStackedWidget()
         self.testCaseComboBox = QtWidgets.QComboBox()
         self.testCaseComboBox.setFixedWidth(300)
-        for i in range(0,3):
-            title = "Test Case " + str(i)
-            self.testCaseStack.addWidget(self.TestCase(title, self.defaultTestValue))
-            self.testCaseComboBox.addItem(title)
         self.testCaseComboBox.activated[int].connect(self.changeTestCase)
         self.testCaseComboBox.addItem("+ Add Test Case")
         self.nullTestCase = QtWidgets.QLabel('Click "Add Test Case" to get started')
@@ -154,14 +153,15 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.testCasePoints.valueChanged.connect(self.updateTotalPoints)
         self.testCasePoints.setRange(0,999999)
         self.testCasePoints.setFixedWidth(50)
-        self.testCaseRename = QtWidgets.QPushButton("Rename Test Case")
-        self.testCaseRename.setFixedWidth(120)
-        self.testCaseRename.clicked.connect(lambda: self.renameTestCase(self.testCaseStack.currentIndex()))
 
-        self.testCaseRemove = QtWidgets.QPushButton("Delete Test Case")
-        self.testCaseRemove.setFixedWidth(120)
-        self.testCaseRemove.clicked.connect(lambda: self.removeTestCase(self.testCaseStack.currentIndex()))
-
+        self.matchTypeLabel = QtWidgets.QLabel("Match type:")
+        self.matchTypeLabel.setFixedWidth(75)
+        self.matchTypeComboBox = QtWidgets.QComboBox()
+        self.matchTypeComboBox.setFixedWidth(250)
+        self.matchTypeComboBox.addItem("Exact Match")
+        self.matchTypeComboBox.addItem("Result contains benchmark subset")
+        self.matchTypeComboBox.addItem("Result contains benchmark superset")
+        self.matchTypeComboBox.activated[int].connect(self.updateMatchType)
 
         self.testCaseControls = QtWidgets.QHBoxLayout()
         self.testCaseControls.setContentsMargins(10,20,10,0)
@@ -170,50 +170,85 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.testCaseControls.addWidget(self.testCasePointsLabel)
         self.testCaseControls.addWidget(self.testCasePoints)
         self.testCaseControls.addSpacing(10)
-        self.testCaseControls.addWidget(self.testCaseRename)
-        self.testCaseControls.addSpacing(10)
-        self.testCaseControls.addWidget(self.testCaseRemove)
-        self.testCaseControls.addStretch(10)
+        self.testCaseControls.addWidget(self.matchTypeLabel)
+        self.testCaseControls.addWidget(self.matchTypeComboBox)
+
         self.layout.addLayout(self.testCaseControls)
 
         self.layout.addWidget(self.testCaseStack)
 
+    def createSolutionPicker(self):
+        self.solutionPicker = QtWidgets.QGridLayout()
+        self.solutionLabel = QtWidgets.QLabel("Path to folder containing solution code:")
+        self.solutionLabel.setMaximumHeight(50)
+        self.solutionPath = QtWidgets.QLineEdit(os.getcwd())
+        self.solutionPath.setFixedWidth(500)
+        self.solutionSelect = QtWidgets.QPushButton("Browse")
+        self.solutionSelect.setFixedWidth(100)
+        self.solutionSelect.clicked.connect(self.solutionFilePicker)
+
+        self.solutionPicker.addWidget(self.solutionLabel,0,0)
+        self.solutionPicker.addWidget(self.solutionPath,1,0)
+        self.solutionPicker.addWidget(self.solutionSelect,1,1)
+        self.layout.addLayout(self.solutionPicker)
+        self.layout.setAlignment(self.solutionPicker, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+    
+    def solutionFilePicker(self):
+        dialog = QtWidgets.QFileDialog(self)
+        dialog.setFileMode(QtWidgets.QFileDialog.Directory)
+        dialog.setWindowTitle("Select Project Directory")
+        dialog.setOptions(QtWidgets.QFileDialog.ShowDirsOnly)
+        dialog.setDirectory(self.projectPath.text())
+
+        if dialog.exec_():
+            self.projectPath.setText(dialog.selectedFiles()[0])
+
     def changeTestCase(self, index):
+
         if index == self.testCaseComboBox.count()-1:
             self.addTestCase()
         else:
             self.testCaseComboBox.setCurrentIndex(index)
             self.testCaseStack.setCurrentIndex(index)
             self.testCasePoints.setValue(self.testCaseStack.widget(index).points)
+            self.matchTypeComboBox.setCurrentIndex(self.testCaseStack.widget(index).matchType)
 
 
 
     def addTestCase(self):
-        self.testCaseRemove.setEnabled(True) #since we keep at least 1 real test case around at all times
-        self.testCaseStack.insertWidget(self.testCaseStack.count()-1, self.TestCase("New Test Case", self.defaultTestValue))
-        self.testCaseComboBox.insertItem(self.testCaseComboBox.count()-1, "New Test Case")
-        self.changeTestCase(self.testCaseStack.count()-2)
-        self.updateTotalPoints()
-
+        dialog, ok = QtWidgets.QInputDialog().getText(self, "Test Case Name", "Enter test case name:", QtWidgets.QLineEdit.Normal) 
+        if ok and dialog:
+            self.testCaseStack.insertWidget(self.testCaseStack.count()-1, self.TestCase(dialog, self.defaultTestValue, self.defaultMatchType))
+            self.testCaseComboBox.insertItem(self.testCaseComboBox.count()-1, dialog)
+            self.changeTestCase(self.testCaseStack.count()-2)
+            self.updateTotalPoints()
+        else:
+            #if user cancels, test case switches to last test case -> TODO preserve previous test case instead of defaulting to last?
+            if self.testCaseStack.count() > 1:
+                self.changeTestCase(self.testCaseStack.count()-2)
+                
 
     def removeTestCase(self, index):
 
+        print(self.testCaseComboBox.count())
+
+        # prevents deleting Add Test Case item
+        if self.testCaseComboBox.count() == 1:
+            return
+
         target = self.testCaseStack.widget(index)
         self.testCaseStack.removeWidget(target)
-        
         self.testCaseComboBox.removeItem(index)
-        self.updateTotalPoints()
-        
-        if self.testCaseComboBox.currentIndex() == self.testCaseComboBox.count()-1:
-            self.changeTestCase(self.testCaseComboBox.currentIndex()-1)
 
+        if self.testCaseComboBox.count() > 1:
+            self.updateTotalPoints()
+            
+            if self.testCaseComboBox.currentIndex() == self.testCaseComboBox.count()-1:
+                self.changeTestCase(self.testCaseComboBox.currentIndex()-1)
 
-        if self.testCaseStack.count() == 2:
-            #we just deleted the penultimate real test case, make sure that the remaining one is selected
-            self.changeTestCase(0)
-
-            #also disable deletion until we get 2 real test cases
-            self.testCaseRemove.setEnabled(False)
+            if self.testCaseStack.count() == 2:
+                #we just deleted the penultimate real test case, make sure that the remaining one is selected
+                self.changeTestCase(0)
 
 
     def renameTestCase(self, index):
@@ -251,8 +286,14 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.updateBreadcrumb(path)
 
     def saveTestSuite(self, saveAs =False):
-        print("save test suite, saveAs= " + str(saveAs))
-        #TODO implement saving the test suite
+
+        if(self.testCaseStack.count() == 1):
+            #TODO display error message
+            return
+
+        total = 0
+        for index in range(0, self.testCaseStack.count()-1):
+            total += self.testCaseStack.widget(index).points
 
     def closeTestSuite(self):
         print("close test suite")
