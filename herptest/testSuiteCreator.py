@@ -33,6 +33,8 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.setActiveLanguage("Python")
         
         self.createTestCaseContainer()
+        
+        self.generateTestSuiteContainer()
 
         self.containerLayout.addLayout(self.layout)
         self.createBreadcrumb()
@@ -177,31 +179,45 @@ class TestSuiteCreator(QtWidgets.QWidget):
 
         self.layout.addWidget(self.testCaseStack)
 
-    def createSolutionPicker(self):
-        self.solutionPicker = QtWidgets.QGridLayout()
-        self.solutionLabel = QtWidgets.QLabel("Path to folder containing solution code:")
-        self.solutionLabel.setMaximumHeight(50)
-        self.solutionPath = QtWidgets.QLineEdit(os.getcwd())
-        self.solutionPath.setFixedWidth(500)
-        self.solutionSelect = QtWidgets.QPushButton("Browse")
-        self.solutionSelect.setFixedWidth(100)
-        self.solutionSelect.clicked.connect(self.solutionFilePicker)
-
-        self.solutionPicker.addWidget(self.solutionLabel,0,0)
-        self.solutionPicker.addWidget(self.solutionPath,1,0)
-        self.solutionPicker.addWidget(self.solutionSelect,1,1)
-        self.layout.addLayout(self.solutionPicker)
-        self.layout.setAlignment(self.solutionPicker, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+    def generateTestSuiteContainer(self):
+        self.generateTestSuiteButton = QtWidgets.QPushButton("Generate Test Suite")
+        self.generateTestSuiteButton.setFixedWidth(200)
+        self.generateTestSuiteButton.clicked.connect(self.solutionFilePicker)
+        self.layout.addWidget(self.generateTestSuiteButton)
+        self.layout.setAlignment(self.generateTestSuiteButton, QtCore.Qt.AlignRight)
+        
     
     def solutionFilePicker(self):
+        if(self.testCaseStack.count() == 1):
+            #TODO gray out button instead of having this check
+            return
         dialog = QtWidgets.QFileDialog(self)
-        dialog.setFileMode(QtWidgets.QFileDialog.Directory)
-        dialog.setWindowTitle("Select Project Directory")
-        dialog.setOptions(QtWidgets.QFileDialog.ShowDirsOnly)
-        dialog.setDirectory(self.projectPath.text())
+        dialog.setFileMode(QtWidgets.QFileDialog.ExistingFile)
+        dialog.setWindowTitle("Select Solution Code")
+        dialog.setDirectory(os.getcwd()) #TODO get a better default
 
         if dialog.exec_():
-            self.projectPath.setText(dialog.selectedFiles()[0])
+            solutionCodeBaseName = os.path.basename(os.path.normpath(dialog.selectedFiles()[0]))
+            self.generateTestSuite(solutionCodeBaseName)
+
+    def generateTestSuite(self, basename):
+        data = {}
+        data['solution_file'] = basename
+        data['test_cases'] = []
+        for index in range(0, self.testCaseStack.count()-1):
+            testCase = {}
+            testCase['test_case_title'] = self.testCaseStack.widget(index).name
+            testCase['input_list'] = self.testCaseStack.widget(index).inputText.toPlainText().split("\n")
+            testCase['points'] = self.testCaseStack.widget(index).points
+            if self.testCaseStack.widget(index).matchType == 2:
+                testCase['match_type'] = -1
+            else:
+                testCase['match_type'] = self.testCaseStack.widget(index).matchType
+            data['test_cases'].append(testCase)
+        with open(basename + '_testsuite.json', 'w') as outfile: #TODO figure out where to save this path
+            json.dump(data, outfile)
+            
+        
 
     def changeTestCase(self, index):
 
@@ -230,7 +246,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
 
     def removeTestCase(self, index):
 
-        print(self.testCaseComboBox.count())
+        #TODO add dialog before removing test case for safety
 
         # prevents deleting Add Test Case item
         if self.testCaseComboBox.count() == 1:
@@ -286,14 +302,11 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.updateBreadcrumb(path)
 
     def saveTestSuite(self, saveAs =False):
-
+        #TODO implement saving test suite
         if(self.testCaseStack.count() == 1):
             #TODO display error message
             return
 
-        total = 0
-        for index in range(0, self.testCaseStack.count()-1):
-            total += self.testCaseStack.widget(index).points
 
     def closeTestSuite(self):
         print("close test suite")
