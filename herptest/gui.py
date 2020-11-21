@@ -1,7 +1,7 @@
 import sys
 import time, random, pathlib
 from PySide2 import QtCore, QtWidgets, QtGui
-from . import homePage, testSuiteCreator, resultsPage, canvasUploader
+from . import homePage, testSuiteCreator, resultsPage, canvasUploader, autopull_elma
 
 
         
@@ -19,6 +19,8 @@ def initWindow():
     resultsPageInst = tabContainer.widget(2)
     tabContainer.addTab(canvasUploader.CanvasUploader(), "Canvas Uploader")
     canvasUploaderInst = tabContainer.widget(3)
+    tabContainer.addTab(autopull_elma.AutopullElma(), "Auto-Pull && ELMA")
+    elmaInst = tabContainer.widget(4)
 
 
     #give the home page the funcion to call when the SHOW RESULTS button is clicked
@@ -26,7 +28,8 @@ def initWindow():
     homePageInst.setResultsFunction(resultsPageInst.loadResults, (tabContainer.setCurrentWidget, resultsPageInst))
 
 
-    tabList = ["ELMA Config"]
+    #add temporary tabs here (for testing)
+    tabList = []
     for t in tabList:
         tabContainer.addTab(QtWidgets.QLabel("    " + t + " - Coming soon!"), t)
 

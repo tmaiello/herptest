@@ -1,52 +1,17 @@
 from PySide2 import QtCore, QtWidgets, QtGui
 import os, subprocess
 import numpy as np
-from . import grade_csv_uploader, canvas, env_dialog
+from . import canvas_interface
 
-class CanvasUploader(QtWidgets.QWidget):
+class CanvasUploader(canvas_interface.AbstractCanvasInterface):
 
     def __init__(self):
         super().__init__()
 
-        self.courseDict = None
-        self.assignmentDict = {}
-        #init trackers, updating this makes it simpler to pass this data to upload
-        self.currentCourse = None
-        self.currentCourseId = None
-        self.currentAssignment = None
-        self.assignmentReady = False
         self.fileReady = False
-        self.canvasEnvMissing = False
-        self.setupCanvasInstances()
 
-        if self.canvasEnvMissing:
-            #setupCanvasInstances sets this true if there was an issue with setup, show the dialog to fetch the env
-            self.envDialog = env_dialog.EnvDialog(lambda: self.handleEnvLoaded())
-            self.setLayout(self.envDialog.layout)
-        else:
-            #canvas env loaded properly, load the UI
-            self.createUI()
-
-
-
-
-    def handleEnvLoaded(self):
-        #print("callback success")
-        
-        QtWidgets.QWidget().setLayout(self.layout())
-        self.createUI()
-        
-    
-
-    def createUI(self):
-        self.layout = QtWidgets.QVBoxLayout()
-        self.title = QtWidgets.QLabel()
-
-        self.containerView = QtWidgets.QTreeView()
-        self.showCourses() 
-        
-        self.containerView.clicked[QtCore.QModelIndex].connect(self.handleSelection)
-
+    def createControls(self):
+        #this method gets called during the parent class's createUI method and injects the necessary controls
         self.uploadContainer = QtWidgets.QGridLayout()
         self.csvLabel = QtWidgets.QLabel("Select CSV to Upload")
         self.csvLabel.setMaximumHeight(50)
@@ -82,20 +47,22 @@ class CanvasUploader(QtWidgets.QWidget):
         self.uploadContainer.addLayout(self.modeLayout,1,2)
         self.uploadContainer.setAlignment(self.modeLayout, QtCore.Qt.AlignTop)
         self.uploadContainer.addWidget(self.uploadButton,1,3)
+
+        #self.layout is the reference to the layout manager that WE control, not the .layout() that returns the layout
+        #   manager tracked by QT
         self.layout.setAlignment(self.uploadContainer, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
-
-        
-        self.layout.addWidget(self.title)
-        self.layout.addWidget(self.containerView)
         self.layout.addLayout(self.uploadContainer)
-        self.setLayout(self.layout)
 
+    def onSelect(self):
+        #called in the handleSelect method of the parent, we need to invoke approveUpload()
+        self.approveUpload()
 
     def approveUpload(self):
         if self.fileReady and self.assignmentReady:
             self.uploadButton.setEnabled(True)
         else:
             self.uploadButton.setEnabled(False)
+
     def uploadFilePicker(self):
         dialog = QtWidgets.QFileDialog(self)
         dialog.setFileMode(QtWidgets.QFileDialog.ExistingFile)
@@ -107,43 +74,19 @@ class CanvasUploader(QtWidgets.QWidget):
             self.csvPathField.setText(self.uploadPath)
             self.fileReady = True
         self.approveUpload()
-
-    def handleSelection(self, index):
-        item = self.activeModel.itemFromIndex(index)
-        if item.text().find("<-") != -1:
-            #go back to the courses page
-            
-            self.currentCourse = None
-            self.currentAssignment = None
-            self.showCourses()
-            self.assignmentReady = False
-        elif item.text().find("->") != -1:
-            #go down a level
-            courseNameIndex = self.activeModel.itemFromIndex(index.siblingAtColumn(0))
-            self.currentCourse = courseNameIndex.text()
-            courseIdIndex = self.activeModel.itemFromIndex(index.siblingAtColumn(1))
-            self.currentCourseId = courseIdIndex.text()
-
-            self.showAssignments(courseNameIndex)
-        elif self.mode == "assignments":
-            self.currentAssignment = self.activeModel.itemFromIndex(index.siblingAtColumn(0)).text()
-            self.assignmentReady = True
-        elif self.mode == "courses":
-            self.currentCourse = self.activeModel.itemFromIndex(index.siblingAtColumn(0)).text()
-        #print("current course: " + str(self.currentCourse))
-        #print("current assignment: " + str(self.currentAssignment))
-        self.approveUpload()
-
+   
     def handleUpload(self):
         #TODO can we do this in a worker thread?
+        #this method uses the canvasWrapper and canvasUtil attributes of the parent class
         if self.modeSelectTests.checkState() == QtCore.Qt.Checked:
             #test results mode, call matty's code
-            print("test suite mode!")
+            #print("test suite mode!")
             
             self.canvasWrapper.push_grades(self.currentCourse, self.currentAssignment, self.uploadPath)
         elif self.modeSelectRubric.checkState() == QtCore.Qt.Checked:
             #rubric mode, call tyler's code
-            print("rubric mode!")
+            #print("rubric mode!")
+            
             self.canvasUtil.process_and_upload_file(self.currentCourseId, self.currentAssignment, self.uploadPath)
         else:
             #neither was selected, create a warning dialog and do nothing
@@ -152,91 +95,3 @@ class CanvasUploader(QtWidgets.QWidget):
             dialog.setWindowTitle('Select an Upload Mode!')
             dialog.exec_()
         #print("upload {}".format(self.uploadPath))
-        
-
-    def setupCanvasInstances(self):
-        self.canvasUtil = None
-        self.canvasPath = "https://ufl.instructure.com/api/v1"
-        self.canvasBasePath = "https://ufl.instructure.com"
-        self.dotEnvPath = "canvas.env"
-        self.tokenType = "TOKEN"
-        try:
-            self.canvasUtil = grade_csv_uploader.CanvasUtil(self.canvasPath, self.dotEnvPath, self.tokenType)
-
-            self.canvasWrapper = canvas.CanvasWrapper(self.canvasBasePath, self.dotEnvPath)
-        except:
-            print("Something went wrong, either the canvas.env does not exist or it does not contain a token with the type TOKEN")
-            self.canvasEnvMissing = True
-
-        
-
-    def showCourses(self):
-        self.mode = "courses"
-        self.title.setText("List of Courses")
-        coursesModel = QtGui.QStandardItemModel()
-        coursesModel.setHorizontalHeaderLabels(["Course Name", "Course ID", " "])
-
-        if not self.courseDict:
-            self.courseDict = self.canvasUtil.get_courses_this_semester() # dictionary with keys:course name, values:course id
-
-        if len(self.courseDict.keys()) == 0:
-            #No active courses available
-            self.courseDict["No Active Courses Found"] = ""   
-
-        for course in self.courseDict.keys():
-            courseName = QtGui.QStandardItem(course)
-            courseName.setEditable(False)
-            courseId = QtGui.QStandardItem(str(self.courseDict[course]))
-            courseId.setEditable(False)
-            if courseId.text() == "":
-                expandCourse = QtGui.QStandardItem("")
-            else:
-                expandCourse = QtGui.QStandardItem("Expand ->")
-            expandCourse.setEditable(False)
-            coursesModel.appendRow([courseName, courseId, expandCourse])
-        
-        self.coursesActive = True
-        self.activeModel = coursesModel
-        self.containerView.setModel(self.activeModel)
-        for i in range(0,3):
-            self.containerView.resizeColumnToContents(i)
-
-    def showAssignments(self, courseItem):
-        course = courseItem.text()
-        self.mode = "assignments"
-        self.title.setText("Assignments for " + course)
-        assignmentsModel = QtGui.QStandardItemModel()
-        assignmentsModel.setHorizontalHeaderLabels(["Assignment Name", "Assignment ID"])
-
-        
-        if course not in self.assignmentDict.keys() or not self.assignmentDict[course]:
-            self.assignmentDict[course] = self.canvasUtil.get_assignment_list(self.courseDict[course])
-        
-        assignments = self.assignmentDict[course]
-
-        backSelect = QtGui.QStandardItem("<- Return to Courses")
-        backSelect.setEditable(False)   
-        assignmentsModel.appendRow([backSelect])
-
-        if len(assignments.keys()) == 0:
-            #no active assignments available
-            assignments["No Assignments Found"] = ""  
-
-        for assignment in assignments.keys():
-            assignmentName = QtGui.QStandardItem(assignment)
-            assignmentName.setEditable(False)
-            assignmentId = QtGui.QStandardItem(str(assignments[assignment]))
-            assignmentId.setEditable(False)
-            assignmentsModel.appendRow([assignmentName, assignmentId])
-
-        self.coursesActive = False
-        self.activeModel = assignmentsModel
-        self.containerView.setModel(self.activeModel)
-        for i in range(0,3):
-            self.containerView.resizeColumnToContents(i)
-
-
-
-
-   
-
