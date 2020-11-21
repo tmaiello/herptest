@@ -35,6 +35,11 @@ class CanvasWrapper:
                     results.append(row)
         return results
 
+    def get_download_link(self, _course, assignment):
+        for assn in self.get_assignments(list(course.id for course in self.get_courses() if course.name == _course)[0]):
+            if(assignment == assn.name):
+                return assn.submissions_download_url
+
     def download_submissions(self, _course, assignment, path):
         for assn in self.get_assignments(list(course.id for course in self.get_courses() if course.name == _course)[0]):
             if(assignment == assn.name):

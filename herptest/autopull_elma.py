@@ -7,6 +7,9 @@ class AutopullElma(canvas_interface.AbstractCanvasInterface):
     def __init__(self):
         super().__init__()
 
+        #until the download link in canvas.py gets fixed, this will force the download button to be greyed out
+        self.downloadPossible = False
+
     def createControls(self):
         #this gets called by the createUI method of the parent class
         self.controls = QtWidgets.QHBoxLayout()
@@ -84,13 +87,19 @@ class AutopullElma(canvas_interface.AbstractCanvasInterface):
 
     def approveUpload(self):
         if self.assignmentReady and self.downloadDest.text() != "" :
-            self.downloadAssignments.setEnabled(True)
-            self.downloadStatus.setText("Status: Ready to download")
-            self.downloadStatus.setStyleSheet("color: black")
+            if self.downloadPossible:
+                self.downloadAssignments.setEnabled(True)
+                self.downloadStatus.setText("Status: Ready to download")
+                self.downloadStatus.setStyleSheet("color: black")
+            else:
+                self.downloadAssignments.setEnabled(False)
+                self.downloadStatus.setText("Status: Download disabled")
+                self.downloadStatus.setStyleSheet("color: black")
         else:
             self.downloadAssignments.setEnabled(False)
             self.downloadStatus.setText("Status: Select an assignment")
             self.downloadStatus.setStyleSheet("color: black")
+            
 
 
     def downloadFilePicker(self):
@@ -125,9 +134,10 @@ class AutopullElma(canvas_interface.AbstractCanvasInterface):
         self.downloadStatus.setStyleSheet("color: black")
         self.downloadStatus.repaint()
 
-        self.canvasWrapper.download_submissions(self.currentCourse, self.currentAssignment, self.downloadDest.text() + "/submissions.zip")
-
+        
+        #this doesnt actually work properly right now because download_submissions is failing auth
         try:
+            self.canvasWrapper.download_submissions(self.currentCourse, self.currentAssignment, self.downloadDest.text() + "/submissions.zip")
             self.downloadStatus.setText("Status: Download complete")
             self.downloadStatus.setStyleSheet("color: black")
             self.elmaSource.setText(self.downloadDest.text() + "/submissions.zip")
@@ -135,6 +145,19 @@ class AutopullElma(canvas_interface.AbstractCanvasInterface):
             print("inside except")
             self.downloadStatus.setText("Status: Error during download")
             self.downloadStatus.setStyleSheet("color: red")
+
+    def handleDownloadHack(self):
+        #this can be called instead of handleDownload to bypass the actual download step
+        #opens in the user's browser instead!
+        #this doesnt work in WSL though!!
+        link = self.canvasWrapper.get_download_link(self.currentCourse, self.currentAssignment)
+
+        self.downloadStatus.setOpenExternalLinks(True)
+        self.downloadStatus.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByMouse)
+        self.downloadStatus.setFocusPolicy(QtCore.Qt.StrongFocus)
+        self.downloadStatus.setText(f"<a href=\"{link}\">Click to open in Browser</a>")
+        #self.downloadStatus.setStyleSheet("color: blue; text-decoration: underline")
+
 
     def handleELMA(self):
         self.elmaStatus.setText("Status: Running ELMA")
