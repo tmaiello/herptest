@@ -3,7 +3,8 @@ from canvasapi import Canvas
 from csv import reader
 from canvasapi import assignment
 from dotenv import load_dotenv
-import urllib.request
+import requests
+from . import grade_csv_uploader
 
 class CanvasWrapper:
     def __init__(self, API_URL, env_path):
@@ -38,7 +39,9 @@ class CanvasWrapper:
         for assn in self.get_assignments(list(course.id for course in self.get_courses() if course.name == _course)[0]):
             if(assignment == assn.name):
                 print(assn.submissions_download_url)
-                urllib.request.urlretrieve(assn.submissions_download_url, path)
+                r = requests.get(assn.submissions_download_url, auth=grade_csv_uploader.BearerAuth(self.canv_token))
+                open(path, 'wb').write(r.content)
+
 
     def push_grades(self, _course, assignment, path):
         for assn in self.get_assignments(list(course.id for course in self.get_courses() if course.name == _course)[0]):
@@ -59,7 +62,8 @@ def main():
 
     canvas = CanvasWrapper(url, path)
 
-    #print(canvas.download_submissions("Sandbox: Blanchard", "PengTest", './../../Test Suite/submissions.zip'))
+    #print([course for course in canvas.get_courses()])
+    canvas.download_submissions("Sandbox: Blanchard", "PengTest", 'submissions.zip')
     #canvas.push_grades("Sandbox: Blanchard", "PengTest", "../../Test Suite/Results")
 
 if __name__ == "__main__":

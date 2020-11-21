@@ -83,7 +83,6 @@ class AutopullElma(canvas_interface.AbstractCanvasInterface):
         self.approveUpload()
 
     def approveUpload(self):
-        print("approveUpload from elma")
         if self.assignmentReady and self.downloadDest.text() != "" :
             self.downloadAssignments.setEnabled(True)
             self.downloadStatus.setText("Status: Ready to download")
@@ -125,19 +124,24 @@ class AutopullElma(canvas_interface.AbstractCanvasInterface):
         self.downloadStatus.setText("Status: Downloading submissions.zip")
         self.downloadStatus.setStyleSheet("color: black")
         self.downloadStatus.repaint()
+
+        self.canvasWrapper.download_submissions(self.currentCourse, self.currentAssignment, self.downloadDest.text() + "/submissions.zip")
+
         try:
-            self.canvasWrapper.download_submissions(self.currentCourse, self.currentAssignment, self.downloadDest.text())
-            self.elmaSource.setText(self.downloadDest.text() + "/submissions.zip")
             self.downloadStatus.setText("Status: Download complete")
             self.downloadStatus.setStyleSheet("color: black")
+            self.elmaSource.setText(self.downloadDest.text() + "/submissions.zip")
         except:
             print("inside except")
             self.downloadStatus.setText("Status: Error during download")
             self.downloadStatus.setStyleSheet("color: red")
-            self.downloadStatus.repaint()
 
     def handleELMA(self):
         self.elmaStatus.setText("Status: Running ELMA")
+        self.elmaStatus.repaint()
+
+        print(self.elmaSource.text())
+        print(self.elmaDest.text())
         process = subprocess.Popen(['elma', self.elmaSource.text(), self.elmaDest.text()], stdout=subprocess.PIPE)
         
         return_code = None
