@@ -72,7 +72,7 @@ class CanvasUtil:
         """
         Get dictionary (name -> id) of courses in this semester
         """
-        response = requests.get(f"{self.canvas_api_url}/courses?enrollment_type=student&include=items&per_page=1000", auth=BearerAuth(self.token)) #enrollment_type changed from teacher
+        response = requests.get(f"{self.canvas_api_url}/courses?enrollment_type=teacher&include=items&per_page=1000", auth=BearerAuth(self.token)) #enrollment_type changed from teacher
         # print(response.json())
         content = response.json()
         try:
