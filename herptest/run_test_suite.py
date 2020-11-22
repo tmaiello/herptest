@@ -49,6 +49,7 @@ def parse_arguments():
 
 def build_project(source_root, build_root, build_cfg, submission):
     result_error = None
+    print(os.getcwd())
     current_dir = os.getcwd()
 
     # If there is a not a specified build directory, fall back to the source directory instead.
@@ -63,6 +64,7 @@ def build_project(source_root, build_root, build_cfg, submission):
             os.makedirs(build_root)
         os.chdir(build_root)
 
+    print(os.getcwd())
     if build_cfg.vm.is_vm == True:
         staging_log, build_log = build_cfg.vm_inst.make_vm(submission)
 
@@ -92,7 +94,6 @@ def build_project(source_root, build_root, build_cfg, submission):
 
         except (subprocess.CalledProcessError, FileNotFoundError) as error:
             result_error = error
-
     os.chdir(current_dir)
     return result_error
 

@@ -3,7 +3,10 @@ from canvasapi import Canvas
 from csv import reader
 from canvasapi import assignment
 from dotenv import load_dotenv
-import urllib.request
+import requests, urllib.request
+from . import grade_csv_uploader
+
+
 
 class CanvasWrapper:
     def __init__(self, API_URL, env_path):
@@ -34,11 +37,23 @@ class CanvasWrapper:
                     results.append(row)
         return results
 
+
+    def get_download_link(self, _course, assignment):
+        for assn in self.get_assignments(list(course.id for course in self.get_courses() if course.name == _course)[0]):
+            if(assignment == assn.name):
+                return assn.submissions_download_url
+
     def download_submissions(self, _course, assignment, path):
         for assn in self.get_assignments(list(course.id for course in self.get_courses() if course.name == _course)[0]):
             if(assignment == assn.name):
                 print(assn.submissions_download_url)
+                # Retrofit this code to actually authenticate
+                #r = requests.get(assn.submissions_download_url, auth=grade_csv_uploader.BearerAuth(self.canv_token))
+                #open(path, 'wb').write(r.content)
+                
+                #this code works on matty's machine apparently,  but nowhere else
                 urllib.request.urlretrieve(assn.submissions_download_url, path)
+
 
     def push_grades(self, _course, assignment, path):
         for assn in self.get_assignments(list(course.id for course in self.get_courses() if course.name == _course)[0]):
