@@ -171,6 +171,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.testCasePoints.valueChanged.connect(self.updateTotalPoints)
         self.testCasePoints.setRange(0,999999)
         self.testCasePoints.setFixedWidth(50)
+        self.testCasePoints.setDisabled(True)
 
         self.matchTypeLabel = QtWidgets.QLabel("Match type:")
         self.matchTypeLabel.setFixedWidth(75)
@@ -180,6 +181,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.matchTypeComboBox.addItem("Result contains benchmark subset")
         self.matchTypeComboBox.addItem("Result contains benchmark superset")
         self.matchTypeComboBox.activated[int].connect(self.updateMatchType)
+        self.matchTypeComboBox.setDisabled(True)
 
         self.startTokenLabel = QtWidgets.QLabel("Start token:")
         self.startTokenLabel.setFixedWidth(75)
@@ -257,11 +259,8 @@ class TestSuiteCreator(QtWidgets.QWidget):
             data['test_cases'].append(testCase)
         with open(basename + '_testsuite.json', 'w') as outfile: #TODO figure out where to save this path
             json.dump(data, outfile)
-            
-        
 
     def changeTestCase(self, index):
-
         if index == self.testCaseComboBox.count()-1:
             self.addTestCase()
         else:
@@ -272,12 +271,12 @@ class TestSuiteCreator(QtWidgets.QWidget):
             self.startToken.setValue(self.testCaseStack.widget(index).startToken)
             self.endToken.setValue(self.testCaseStack.widget(index).endToken)
 
-
-
     def addTestCase(self):
         dialog, ok = QtWidgets.QInputDialog().getText(self, "Test Case Name", "Enter test case name:", QtWidgets.QLineEdit.Normal) 
         if ok and dialog:
             self.generateTestSuiteButton.setEnabled(True)
+            self.testCasePoints.setEnabled(True)
+            self.matchTypeComboBox.setEnabled(True)
             self.testCaseStack.insertWidget(self.testCaseStack.count()-1, self.TestCase(dialog, self.defaultTestValue, self.defaultMatchType, self.defaultStartToken, self.defaultEndToken))
             self.testCaseComboBox.insertItem(self.testCaseComboBox.count()-1, dialog)
             self.changeTestCase(self.testCaseStack.count()-2)
@@ -304,8 +303,6 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.updateTotalPoints()
 
         if self.testCaseComboBox.count() > 1:
-            self.generateTestSuiteButton.setEnabled(True)
-            
             if self.testCaseComboBox.currentIndex() == self.testCaseComboBox.count()-1:
                 self.changeTestCase(self.testCaseComboBox.currentIndex()-1)
 
@@ -314,6 +311,8 @@ class TestSuiteCreator(QtWidgets.QWidget):
                 self.changeTestCase(0)
         else:
             self.generateTestSuiteButton.setDisabled(True)
+            self.testCasePoints.setDisabled(True)
+            self.matchTypeComboBox.setDisabled(True)
 
 
     def renameTestCase(self, index):
@@ -327,7 +326,6 @@ class TestSuiteCreator(QtWidgets.QWidget):
     def newTestSuite(self, language):
         print("Creating new test suite for " + language)
         #TODO: linkage
-
 
     def setActiveLanguage(self, language):
         if language == "Java":
