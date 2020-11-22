@@ -59,8 +59,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
     def updateBreadcrumb(self, activeDirectory):
         self.activeDirectory = activeDirectory
         self.breadcrumb.setText("Active Test Suite: " + self.activeDirectory)
-
-    #TODO - change Total Points behavior when no test cases present
+        
     def updateTotalPoints(self):
         #make sure that the current test case gets updated, will not call on Add Test Case widget
         if self.testCaseStack.count() != 1:
