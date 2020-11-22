@@ -143,7 +143,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.testCaseComboBox.setFixedWidth(300)
         self.testCaseComboBox.activated[int].connect(self.changeTestCase)
         self.testCaseComboBox.addItem("+ Add Test Case")
-        self.nullTestCase = QtWidgets.QLabel('Click "Add Test Case" to get started')
+        self.nullTestCase = QtWidgets.QLabel('Click "Add Test Case" to get started!')
         self.testCaseStack.addWidget(self.nullTestCase)
         self.layout.setAlignment(self.nullTestCase, QtCore.Qt.AlignCenter)
 
@@ -183,14 +183,12 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.generateTestSuiteButton = QtWidgets.QPushButton("Generate Test Suite")
         self.generateTestSuiteButton.setFixedWidth(200)
         self.generateTestSuiteButton.clicked.connect(self.solutionFilePicker)
+        self.generateTestSuiteButton.setDisabled(True)
         self.layout.addWidget(self.generateTestSuiteButton)
         self.layout.setAlignment(self.generateTestSuiteButton, QtCore.Qt.AlignRight)
         
     
     def solutionFilePicker(self):
-        if(self.testCaseStack.count() == 1):
-            #TODO gray out button instead of having this check
-            return
         dialog = QtWidgets.QFileDialog(self)
         dialog.setFileMode(QtWidgets.QFileDialog.ExistingFile)
         dialog.setWindowTitle("Select Solution Code")
@@ -234,6 +232,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
     def addTestCase(self):
         dialog, ok = QtWidgets.QInputDialog().getText(self, "Test Case Name", "Enter test case name:", QtWidgets.QLineEdit.Normal) 
         if ok and dialog:
+            self.generateTestSuiteButton.setEnabled(True)
             self.testCaseStack.insertWidget(self.testCaseStack.count()-1, self.TestCase(dialog, self.defaultTestValue, self.defaultMatchType))
             self.testCaseComboBox.insertItem(self.testCaseComboBox.count()-1, dialog)
             self.changeTestCase(self.testCaseStack.count()-2)
@@ -242,6 +241,8 @@ class TestSuiteCreator(QtWidgets.QWidget):
             #if user cancels, test case switches to last test case -> TODO preserve previous test case instead of defaulting to last?
             if self.testCaseStack.count() > 1:
                 self.changeTestCase(self.testCaseStack.count()-2)
+            else:
+                self.generateTestSuiteButton.setDisabled(True)
                 
 
     def removeTestCase(self, index):
@@ -255,9 +256,10 @@ class TestSuiteCreator(QtWidgets.QWidget):
         target = self.testCaseStack.widget(index)
         self.testCaseStack.removeWidget(target)
         self.testCaseComboBox.removeItem(index)
+        self.updateTotalPoints()
 
         if self.testCaseComboBox.count() > 1:
-            self.updateTotalPoints()
+            self.generateTestSuiteButton.setEnabled(True)
             
             if self.testCaseComboBox.currentIndex() == self.testCaseComboBox.count()-1:
                 self.changeTestCase(self.testCaseComboBox.currentIndex()-1)
@@ -265,6 +267,8 @@ class TestSuiteCreator(QtWidgets.QWidget):
             if self.testCaseStack.count() == 2:
                 #we just deleted the penultimate real test case, make sure that the remaining one is selected
                 self.changeTestCase(0)
+        else:
+            self.generateTestSuiteButton.setDisabled(True)
 
 
     def renameTestCase(self, index):
