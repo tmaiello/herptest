@@ -8,3 +8,8 @@ herptest.egg-info/
 venv
 .idea
 .vscode
+moss.pl
+submissions
+basefiles
+report
+report.html

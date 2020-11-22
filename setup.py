@@ -21,7 +21,8 @@ setup(
         'vix',
         'virtualbox',
         'pyside2',
-        'canvasapi'
+        'canvasapi',
+        'mosspy'
     ],
     package_data={'herptest': ['herptest/*.png']},
     include_package_data=True,
@@ -33,7 +34,8 @@ setup(
             'herp = herptest.run_test_suite:main',
             'peng-gui = herptest.gui:main',
             'csv-upload = herptest.grade_csv_uploader:main',
-            'canvas-push = herptest.canvas:main'
+            'canvas-push = herptest.canvas:main',
+            'moss = herptest.run_moss:main'
         ]
     }
 )
