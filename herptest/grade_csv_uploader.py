@@ -1,4 +1,4 @@
-__author__ = "Boris Ermakov-Spektor, Adapted by: Tyler Maiello"
+__author__ = "Tyler Maiello, Boris Ermakov-Spektor"
 
 import os
 import requests
