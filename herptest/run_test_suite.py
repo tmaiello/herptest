@@ -49,6 +49,7 @@ def parse_arguments():
 
 def build_project(source_root, build_root, build_cfg, submission):
     result_error = None
+    print(os.getcwd())
     current_dir = os.getcwd()
 
     # If there is a not a specified build directory, fall back to the source directory instead.
@@ -63,89 +64,128 @@ def build_project(source_root, build_root, build_cfg, submission):
             os.makedirs(build_root)
         os.chdir(build_root)
 
+    print(os.getcwd())
     if build_cfg.vm.is_vm == True:
         staging_log, build_log = build_cfg.vm_inst.make_vm(submission)
 
-        # Check log files pulled from the VM for any errors
-        if os.path.isfile(staging_log):
-            # If we have a staging error log at the location, put its contents into error.log
-            logging.error("STAGING ERRORS\n---------------")
-            with open(staging_log) as file:
-                logging.error(file.read())
-        
-        if os.path.isfile(build_log):
-            # If we have a build error log at the location, put its contents into error.log
-            logging.error("BUILD ERRORS\n---------------")
-            with open(build_log) as file:
-                logging.error(file.read())
+    else:
+        try:
+            # Prepare to make substitutions to the prep / build commands if applicable.
+            replacements = {key : value for key, value in build_cfg.__dict__.items() if not key in ['prep_cmd', 'compile_cmd']}
+            replacements["source_dir"] = source_root
+            replacements["build_dir"] = build_root
+            template = string.Template("")
 
-    try:
-        # Prepare to make substitutions to the prep / build commands if applicable.
-        replacements = {key : value for key, value in build_cfg.__dict__.items() if not key in ['prep_cmd', 'compile_cmd']}
-        replacements["source_dir"] = source_root
-        replacements["build_dir"] = build_root
-        template = string.Template("")
+            if build_cfg.prep_cmd:
+                # Apply substitutions from the build configuration to the prep command
+                prep_cmd = []
+                for entry in build_cfg.prep_cmd:
+                    template.template = entry
+                    prep_cmd.append(template.substitute(**replacements))
+                subprocess.check_output(prep_cmd, stderr=subprocess.STDOUT)
 
-        if build_cfg.prep_cmd:
-            # Apply substitutions from the build configuration to the prep command
-            prep_cmd = []
-            for entry in build_cfg.prep_cmd:
-                template.template = entry
-                prep_cmd.append(template.substitute(**replacements))
-            subprocess.check_output(prep_cmd, stderr=subprocess.STDOUT)
+            if build_cfg.compile_cmd:
+                # Apply substitutions from the build configuration to the compile command
+                compile_cmd = []
+                for entry in build_cfg.compile_cmd:
+                    template.template = entry
+                    compile_cmd.append(template.substitute(**replacements))
+                subprocess.check_output(compile_cmd, stderr=subprocess.STDOUT)
 
-        if build_cfg.compile_cmd:
-            # Apply substitutions from the build configuration to the compile command
-            compile_cmd = []
-            for entry in build_cfg.compile_cmd:
-                template.template = entry
-                compile_cmd.append(template.substitute(**replacements))
-            subprocess.check_output(compile_cmd, stderr=subprocess.STDOUT)
-
-    except (subprocess.CalledProcessError, FileNotFoundError) as error:
-        result_error = error
-
+        except (subprocess.CalledProcessError, FileNotFoundError) as error:
+            result_error = error
+    print("here")
     os.chdir(current_dir)
     return result_error
 
 
-def run_suite_tests(framework, subject, proj_settings):
+def run_suite_tests(framework, subject, proj_settings, submission):
+    global cfg
     results = []
 
-    # TODO - figure out how to incorporate running VM tests
-    # Run each project's tests.
-    for project in proj_settings.projects:
-        display_name, identifier, points = project
-        data_set, score, penalty_totals = run_project_tests(identifier, framework, subject, proj_settings)
+    if cfg.build.vm.is_vm == True:
+        for project in proj_settings.projects:
+            display_name, identifier, points = project
+            context = proj_settings.initialize_project(identifier, framework, subject, proj_settings)
+            num_of_tests = proj_settings.get_number_of_tests(context)
 
-        # If the project didn't compile, just add a single line indicating that.
-        if isinstance(data_set, str):
-            logging.error("Error: %s" % data_set)
-            data_set = [[], ["Grade: 0 (Does not compile / run)"]]
+            if not isinstance(num_of_tests, int) or num_of_tests == 0:
+                proj_settings.shutdown_project(context)
+                return "get_number_of_tests() returned [%s]" % num_of_tests, None, None
+
+            # Add the initial notes at the top
+            data_set = [ [ "Number of tests: %d." % num_of_tests ], [] ]
+            data_set += [ [ 'Test No.', 'Score', 'Message', 'Desc.' ] ]
+
+            # Run the tests that have been staged to the VM for the submission
+            run_log = cfg.build.vm_inst.run_tests(submission)
+
+            # Run library then harness
+            tests = ["Library", "Harness"]
+            i = 0
+            total = 0
             score = 0
 
-        else:
-            # Add info on the score and penalty values for the project.
-            data_set += [ [], ["Test Cases: %.2f (%.2f%%)" % (score * points, score * 100) ] ]
-            overall_penalty = 0
+            with open(run_log, "r") as file:
+                for line in file:
+                    found = line.find("Correct: ")
 
-            for penalty_num in range(0, len(proj_settings.test_case_penalties)):
-                penalty_name, magnitude = proj_settings.test_case_penalties[penalty_num]
-                overall_penalty += penalty_totals[penalty_num]
-                data_set += [ [ "%s Penalty (overall): %.2f%%" % (penalty_name, penalty_totals[penalty_num] * 100) ] ]
+                    # If we find the correct line in the file
+                    if found != -1:
+                        # Substring of the correct value, stripping newline
+                        s = line[9 : len(line) - 1]
 
-            for penalty_num in range(0, len(proj_settings.project_penalties)):
-                penalty_name, magnitude = proj_settings.project_penalties[penalty_num]
-                penalty_ind = penalty_num + len(proj_settings.test_case_penalties)
-                overall_penalty += penalty_totals[penalty_ind]
-                data_set += [ [ "%s Penalty (overall): %.2f%%" % (penalty_name, penalty_totals[penalty_ind] * 100) ] ]
+                        # Split on score / total
+                        split = s.find("/")
+                        correct = int(s[:split])
+                        score += correct
+                        t = int(s[split + 1 :])
+                        total += t
 
-            # Apply the penalties and scale to the number of points
-            score = (score - min(proj_settings.max_penalty, overall_penalty)) * points
+                        # Add the score for the current test to the data set
+                        data_set += [ [ tests[i], correct, '', '' ] ]
+                        i += 1
+            
+            data_set += [ [], ["Test Cases: %.2f (%.2f%%)" % (score, (score / total) * 100) ] ]
 
-        # Add to the results list.
-        data_set = [ ["Project %s" % display_name] ] + data_set
-        results.append((display_name, score, data_set))
+            # Add to the results list.
+            data_set = [ ["Project %s" % display_name] ] + data_set
+            results.append((display_name, score, data_set))
+    
+    else:
+        # Run each project's tests.
+        for project in proj_settings.projects:
+            display_name, identifier, points = project
+            data_set, score, penalty_totals = run_project_tests(identifier, framework, subject, proj_settings)
+
+            # If the project didn't compile, just add a single line indicating that.
+            if isinstance(data_set, str):
+                logging.error("Error: %s" % data_set)
+                data_set = [[], ["Grade: 0 (Does not compile / run)"]]
+                score = 0
+
+            else:
+                # Add info on the score and penalty values for the project.
+                data_set += [ [], ["Test Cases: %.2f (%.2f%%)" % (score * points, score * 100) ] ]
+                overall_penalty = 0
+
+                for penalty_num in range(0, len(proj_settings.test_case_penalties)):
+                    penalty_name, magnitude = proj_settings.test_case_penalties[penalty_num]
+                    overall_penalty += penalty_totals[penalty_num]
+                    data_set += [ [ "%s Penalty (overall): %.2f%%" % (penalty_name, penalty_totals[penalty_num] * 100) ] ]
+
+                for penalty_num in range(0, len(proj_settings.project_penalties)):
+                    penalty_name, magnitude = proj_settings.project_penalties[penalty_num]
+                    penalty_ind = penalty_num + len(proj_settings.test_case_penalties)
+                    overall_penalty += penalty_totals[penalty_ind]
+                    data_set += [ [ "%s Penalty (overall): %.2f%%" % (penalty_name, penalty_totals[penalty_ind] * 100) ] ]
+
+                # Apply the penalties and scale to the number of points
+                score = (score - min(proj_settings.max_penalty, overall_penalty)) * points
+
+            # Add to the results list.
+            data_set = [ ["Project %s" % display_name] ] + data_set
+            results.append((display_name, score, data_set))
 
     return results
 
@@ -247,10 +287,11 @@ def process_configuration(config):
 # For each submission, copy the base files, then the submission, into the destination folder.
 def prepare_and_test_submission(framework_context, submission):
     global cfg
+
     if not os.path.isdir(submission):
         return None
 
-    # Create a new subject folder with base files in it - then copy oer the submission to be tested.
+    # Create a new subject folder with base files in it - then copy over the submission to be tested.
     if os.path.isdir(cfg.build.destination):
         shutil.rmtree(cfg.build.destination)
 
@@ -280,9 +321,15 @@ def prepare_and_test_submission(framework_context, submission):
     logging.info("done.\n")
 
     starting_dir = os.getcwd()
-    results = run_suite_tests(framework_context, subject_context, cfg.project)
+    results = run_suite_tests(framework_context, subject_context, cfg.project, submission)
     cfg.project.shutdown_subject(subject_context)
-    os.chdir(starting_dir)
+
+    if cfg.build.vm.is_vm:
+        # Windows does not always path back to the right directory for VM projects, so explicitly change it
+        os.chdir(cfg.build.vm.payload_dir)
+    else:
+        os.chdir(starting_dir)
+    
     return results
 
 

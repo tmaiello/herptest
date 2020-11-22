@@ -10,6 +10,7 @@ setup(
     author_email='jjb@eng.ufl.edu',
     description='Test suite tools for instructors',
     install_requires=[
+        'numpy',
         'certifi',
         'chardet',
         'idna',
@@ -32,7 +33,8 @@ setup(
             'elma = herptest.extract_lms_archive:main',
             'herp = herptest.run_test_suite:main',
             'peng-gui = herptest.gui:main',
-            'csv-upload = herptest.grade_csv_uploader:main'
+            'csv-upload = herptest.grade_csv_uploader:main',
+            'canvas-push = herptest.canvas:main'
         ]
     }
 )
