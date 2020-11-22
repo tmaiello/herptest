@@ -4,7 +4,7 @@ import os, subprocess, json
 class TestSuiteCreator(QtWidgets.QWidget):
 
     class TestCase(QtWidgets.QWidget):
-        def __init__(self, name, defaultTestValue, defaultMatchType):
+        def __init__(self, name, defaultTestValue, defaultMatchType, defaultStartToken, defaultEndToken):
             super().__init__()
             self.layout = QtWidgets.QHBoxLayout()
             self.textBox = QtWidgets.QVBoxLayout()
@@ -18,12 +18,16 @@ class TestSuiteCreator(QtWidgets.QWidget):
             self.name = name
             self.points = defaultTestValue
             self.matchType = defaultMatchType
+            self.startToken = defaultStartToken
+            self.endToken = defaultEndToken
 
-    def __init__(self, defaultTestValue=10, defaultMatchType=0):
+    def __init__(self, defaultTestValue=10, defaultMatchType=0, defaultStartToken=0, defaultEndToken=0):
         super().__init__()
 
         self.defaultTestValue = defaultTestValue
         self.defaultMatchType = defaultMatchType
+        self.defaultStartToken = defaultStartToken
+        self.defaultEndToken = defaultEndToken
 
         self.containerLayout = QtWidgets.QVBoxLayout()
         self.containerLayout.setContentsMargins(0,0,0,0)
@@ -59,7 +63,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
     def updateBreadcrumb(self, activeDirectory):
         self.activeDirectory = activeDirectory
         self.breadcrumb.setText("Active Test Suite: " + self.activeDirectory)
-        
+
     def updateTotalPoints(self):
         #make sure that the current test case gets updated, will not call on Add Test Case widget
         if self.testCaseStack.count() != 1:
@@ -73,12 +77,19 @@ class TestSuiteCreator(QtWidgets.QWidget):
     def updateMatchType(self, index):
         # match type converted to values used in tests.py on test suite code generation
         self.testCaseStack.widget(self.testCaseStack.currentIndex()).matchType = index
+        if index == 1 or index == 2:
+            self.startToken.setEnabled(True)
+            self.endToken.setEnabled(True)
+        else:
+            self.startToken.setDisabled(True)
+            self.endToken.setDisabled(True)
+        
 
-    def updateStartToken(self):
-        pass
+    def updateStartToken(self, token):
+        self.testCaseStack.widget(self.testCaseStack.currentIndex()).startToken = token
 
-    def updateEndToken(self):
-        pass
+    def updateEndToken(self, token):
+        self.testCaseStack.widget(self.testCaseStack.currentIndex()).endToken = token
 
     def createMenuBar(self):
         self.menuBar = QtWidgets.QMenuBar()
@@ -173,7 +184,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.startTokenLabel = QtWidgets.QLabel("Start token:")
         self.startTokenLabel.setFixedWidth(75)
         self.startToken = QtWidgets.QSpinBox()
-        self.startToken.setValue(0) #TODO pass as arg
+        self.startToken.setValue(self.defaultStartToken)
         self.startToken.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
         self.startToken.valueChanged.connect(self.updateStartToken)
         self.startToken.setRange(-99999, 99999)
@@ -183,7 +194,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.endTokenLabel = QtWidgets.QLabel("End token:")
         self.endTokenLabel.setFixedWidth(70)
         self.endToken = QtWidgets.QSpinBox()
-        self.endToken.setValue(0) #TODO pass as arg
+        self.endToken.setValue(self.defaultEndToken)
         self.endToken.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
         self.endToken.valueChanged.connect(self.updateEndToken)
         self.endToken.setRange(-99999, 99999)
@@ -241,6 +252,8 @@ class TestSuiteCreator(QtWidgets.QWidget):
                 testCase['match_type'] = -1
             else:
                 testCase['match_type'] = self.testCaseStack.widget(index).matchType
+            testCase['start_token'] = self.testCaseStack.widget(index).startToken
+            testCase['end_token'] = self.testCaseStack.widget(index).endToken
             data['test_cases'].append(testCase)
         with open(basename + '_testsuite.json', 'w') as outfile: #TODO figure out where to save this path
             json.dump(data, outfile)
@@ -256,6 +269,8 @@ class TestSuiteCreator(QtWidgets.QWidget):
             self.testCaseStack.setCurrentIndex(index)
             self.testCasePoints.setValue(self.testCaseStack.widget(index).points)
             self.matchTypeComboBox.setCurrentIndex(self.testCaseStack.widget(index).matchType)
+            self.startToken.setValue(self.testCaseStack.widget(index).startToken)
+            self.endToken.setValue(self.testCaseStack.widget(index).endToken)
 
 
 
@@ -263,7 +278,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
         dialog, ok = QtWidgets.QInputDialog().getText(self, "Test Case Name", "Enter test case name:", QtWidgets.QLineEdit.Normal) 
         if ok and dialog:
             self.generateTestSuiteButton.setEnabled(True)
-            self.testCaseStack.insertWidget(self.testCaseStack.count()-1, self.TestCase(dialog, self.defaultTestValue, self.defaultMatchType))
+            self.testCaseStack.insertWidget(self.testCaseStack.count()-1, self.TestCase(dialog, self.defaultTestValue, self.defaultMatchType, self.defaultStartToken, self.defaultEndToken))
             self.testCaseComboBox.insertItem(self.testCaseComboBox.count()-1, dialog)
             self.changeTestCase(self.testCaseStack.count()-2)
             self.updateTotalPoints()
