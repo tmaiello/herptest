@@ -93,8 +93,8 @@ class VmWrapper:
             # Split off \ if it exists
             submission = submission[1:]
 
-        # Update payload with the current project directory
-        self._payload_dir = os.path.join(self._payload_dir, submission)
+        # Current project directory
+        submission_dir = os.path.join(self._payload_dir, submission)
 
         target = os.path.basename(submission)
 
@@ -115,31 +115,36 @@ class VmWrapper:
 
         # Run the build phase.
         print("Beginning build cycle...")
-        self.run_build(ssh, target)
+        self.run_build(ssh, target, submission_dir)
+        
+        print("Rebooting...")
+        ssh.exec_command(self._remote_staging_dir + "/" + 'reboot.sh', timeout=120000)
+        time.sleep(self._boot_time)
         ssh.close()
 
         # Reboot if needed
         print("Shutting down post build...")
         self.dirty_shutdown()
 
-        # TODO - uncomment once testing is able to be performed
-        # print("Rebooting post build...")
-        # self.vm.power_on()
-        # time.sleep(VM_BOOT_TIME)
+        print("Rebooting post build...")
+        self.vm.power_on()
+        time.sleep(self._boot_time)
 
         # Return the location of the staging and build error logs to populate the errors into error.log
         return (self._result_dir + STAGING_LOG + ERR_LOG, self._result_dir + BUILD_LOG + ERR_LOG)
 
     # Method to run tests, then shut down the VM once completed
-    def run_tests(self, target):
+    def run_tests(self, submission):
+        # Run the test phase.
+        print("Beginning test cycle...")
+
+        target = os.path.basename(submission)
+
         ssh = self.loop_for_shell()
         if not ssh:
             print("Error setting up SSH connection! Exiting...");
             self.dirty_shutdown()
             return
-
-        # Run the test phase.
-        print("Beginning test cycle...")
 
         # Limit to 2 min test
         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(self._remote_staging_dir + "/" + 'run.sh', timeout=120000)
@@ -162,6 +167,10 @@ class VmWrapper:
         # Shut down the VM for this target
         print("Shutting down VM...")
         self.dirty_shutdown()
+
+        run_log = self._result_dir + "/" + target + "/" + RUN_LOG
+        # Return the file location of the run.log file
+        return run_log
     
     def loop_for_shell(self):
         ssh = paramiko.SSHClient()
@@ -237,27 +246,27 @@ class VmWrapper:
         build_errors.extend(ssh_stderr.readlines())
         self.write_to_file(build_errors, self._result_dir + "/" + target + "/" + STAGING_LOG + ERR_LOG)
         
-    def run_build(self, ssh, target):
+    def run_build(self, ssh, target, target_dir):
         # Push files via SFTP.
         sftp = ssh.open_sftp()
 
         for filename in self._payload_files:
-            if not os.path.isfile(self._payload_dir + "/" + filename):
+            if not os.path.isfile(target_dir + "/" + filename):
                 print("Error - file " + filename + " does not exist in payload area for target " + target + ". Skipping.")
                 continue
 
             print("Pushing " + filename + "...")
             try:
-                sftp.put(self._payload_dir + "/" + filename, self._remote_payload_dir + "/" + filename)
+                sftp.put(target_dir + "/" + filename, self._remote_payload_dir + "/" + filename)
             except:
                 print("Error: could not upload " + filename + ".")
 
         # Run the build script; power down when completed.
         print("Executing build....")
         # Limit to 20 min build
-        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command("chmod +x " + self._remote_payload_dir + "/" + self._build_cmd)
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command("chmod +x " + self._remote_staging_dir + "/" + self._build_cmd)
         time.sleep(2)
-        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(self._remote_payload_dir + "/" + self._build_cmd, timeout=1200000)
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(self._remote_staging_dir + "/" + self._build_cmd, timeout=1200000)
         time.sleep(2)
         build_errors = ssh_stderr.readlines()
 
