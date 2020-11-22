@@ -84,6 +84,10 @@ class HomePage(QtWidgets.QWidget):
         self.testButtons = QtWidgets.QHBoxLayout()
         self.testButtons.addStretch(10)
 
+        self.isVM = QtWidgets.QCheckBox("VM Project")
+        self.testButtons.addWidget(self.isVM)
+        self.testButtons.setAlignment(self.isVM, QtCore.Qt.AlignBottom | QtCore.Qt.AlignRight)
+
         self.runTests = QtWidgets.QPushButton("Run Tests")
         self.runTests.setFixedHeight(50)
         self.runTests.setFixedWidth(100)
@@ -110,19 +114,41 @@ class HomePage(QtWidgets.QWidget):
         self.testButtons.removeWidget(self.showResults)
         self.testButtons.insertWidget(1,self.showResults)
 
+    def convertPath(self, path):
+        # Convert WSL paths to Windows paths using WSL's built in wslpath command
+        process = subprocess.Popen(['wslpath', '-w', path], stdout=subprocess.PIPE)
+        windows_path = process.stdout.readline().decode('utf-8')
+
+        # This comes with a new line, so strip it off
+        windows_path = windows_path[:len(windows_path) - 1]
+        return windows_path
+
     def runTestSuite(self):
         #print("Running test suite from: \n" + self.testSuitePath.text())
         #print("on projects from: \n" + self.projectPath.text())
         self.hideResultsButton()
 
+        # Get if it is a VM or not
+        isVM = self.isVM.isChecked()
+
         #TODO: linkage
         os.chdir(self.testSuitePath.text())
-        command = ['herp']
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-        
-        self.outputBox.clear()
-        self.outputBox.appendPlainText("$ " + " ".join(command) + " " + self.testSuitePath.text() + " " + self.projectPath.text())
-        self.outputBox.repaint()
+
+        if isVM:
+            rootPath = self.convertPath(self.testSuitePath.text())
+            projectPath = self.convertPath(self.projectPath.text())
+            # Execute the build on command prompt for VMs
+            process = subprocess.Popen(['cmd.exe', '/C', 'herp', rootPath, projectPath], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+            self.outputBox.clear()
+            self.outputBox.appendPlainText("WARNING: console output will not print until finished.\n$ herp " + rootPath + " " + projectPath)
+            self.outputBox.repaint()
+        else:
+            command = ['herp']
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+            
+            self.outputBox.clear()
+            self.outputBox.appendPlainText("$ " + " ".join(command) + " " + self.testSuitePath.text() + " " + self.projectPath.text())
+            self.outputBox.repaint()
 
         self.runTests.setText("Running...")
         self.runTests.setEnabled(False)
@@ -146,6 +172,13 @@ class HomePage(QtWidgets.QWidget):
                 for errorOutput in process.stderr.readlines():
                     self.outputBox.appendPlainText(errorOutput.strip())
                     self.outputBox.repaint()
+
+                    if isVM:
+                        # If there was an error running herp for VMs, open a message box to alert the user of the error
+                        msgBox = QtWidgets.QMessageBox()
+                        msgBox.setWindowTitle("Error running herp")
+                        msgBox.setText("Error running herp! Please ensure that it is installed on Command Prompt.")
+                        msgBox.exec_()
 
                 break
 

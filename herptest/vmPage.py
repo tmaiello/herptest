@@ -2,6 +2,32 @@ from PySide2 import QtCore, QtWidgets, QtGui
 import os, subprocess
 from pathlib import Path, PureWindowsPath
 
+DEFAULT_CONFIG_BEGIN = "from os import path\n\
+from herptest import toolbox\n\
+from types import SimpleNamespace\n\
+commands = SimpleNamespace()\n\
+general = SimpleNamespace()\n\
+build = SimpleNamespace()\n\
+build.vm = SimpleNamespace()\n\
+settings_path = \"Settings\"\n\
+root_path = path.dirname(path.abspath(__file__))\n\
+settings_path = path.abspath(path.join(root_path, settings_path))\n\
+general.result_path = \"Results\"\n\
+general.result_file = \"result.csv\"\n\
+general.error_log = \"error.log\"\n\
+general.summary_file = \"summary.csv\"\n\
+build.base = None\n\
+build.destination = \"Source/Subject\"\n\
+build.resources = None\n\
+build.subject_src = \"Source/Subject\"\n\
+build.subject_bin = \"Build/Subject\"\n\
+build.framework_src = \"Source/Framework\"\n\
+build.framework_bin = \"Build/Framework\"\n\
+build.prep_cmd = [\"xcopy\", \"$source_dir\\\", \"$build_dir\"]\n\
+build.compile_cmd = []\n"
+
+DEFAULT_CONFIG_END = "project = toolbox.load_module(path.join(settings_path, \"project.py\"))"
+
 class VmPage(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
@@ -213,7 +239,8 @@ class VmPage(QtWidgets.QWidget):
 
         # Write the config variables to config.py
         with open("config.py", "a+") as file:
-            content = "build.vm.is_vm = True\n"
+            content = DEFAULT_CONFIG_BEGIN
+            content += "build.vm.is_vm = True\n"
             content += "build.vm.type = \"" + self.typeDropdown.currentText() + "\"\n"
             content += "build.vm.name = \"" + self.nameField.text() + "\"\n"
             content += "build.vm.snapshot = \"" + self.snapshotField.text() + "\"\n"
@@ -242,17 +269,8 @@ class VmPage(QtWidgets.QWidget):
             content += "build.vm.remote_staging_dir = \"" + self.remstagdirField.text() + "\"\n"
             content += "build.vm.remote_payload_dir = \"" + self.rempaydirField.text() + "\"\n"
             content += "build.vm.remote_result_dir = \"" + self.remresdirField.text() + "\"\n"
+            content += DEFAULT_CONFIG_END
             file.write(content)
-        
-        # Execute the build on command prompt
-        process = subprocess.Popen(['cmd.exe', '/C', 'herp', '.', '.\Projects'], stderr=subprocess.PIPE)
-        error = process.stderr.readline().decode('utf-8')
-        if error != "":
-            # If there was an error running herp, open a message box to alert the user of the error
-            msgBox = QtWidgets.QMessageBox()
-            msgBox.setWindowTitle("Error running herp")
-            msgBox.setText("Error running herp! Please ensure that it is installed on Command Prompt.\nError: " + error)
-            msgBox.exec_()
 
         # Change back to the initial directory
         os.chdir(cur_dir)
