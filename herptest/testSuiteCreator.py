@@ -8,7 +8,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
             super().__init__()
             self.layout = QtWidgets.QHBoxLayout()
             self.textBox = QtWidgets.QVBoxLayout()
-            self.inputTitle = QtWidgets.QLabel("Enter input for test case:")
+            self.inputTitle = QtWidgets.QLabel("Enter input for test case (separate inputs with newline):")
             self.inputTitle.setFixedHeight(30)
             self.inputText = QtWidgets.QPlainTextEdit()
             self.textBox.addWidget(self.inputTitle)
@@ -73,7 +73,13 @@ class TestSuiteCreator(QtWidgets.QWidget):
         
     def updateMatchType(self, index):
         # match type converted to values used in tests.py on test suite code generation
-        self.testCaseStack.widget(self.testCaseStack.currentIndex()).matchType = index  
+        self.testCaseStack.widget(self.testCaseStack.currentIndex()).matchType = index
+
+    def updateStartToken(self):
+        pass
+
+    def updateEndToken(self):
+        pass
 
     def createMenuBar(self):
         self.menuBar = QtWidgets.QMenuBar()
@@ -140,7 +146,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
     def createTestCaseContainer(self):
         self.testCaseStack =  QtWidgets.QStackedWidget()
         self.testCaseComboBox = QtWidgets.QComboBox()
-        self.testCaseComboBox.setFixedWidth(300)
+        self.testCaseComboBox.setFixedWidth(200)
         self.testCaseComboBox.activated[int].connect(self.changeTestCase)
         self.testCaseComboBox.addItem("+ Add Test Case")
         self.nullTestCase = QtWidgets.QLabel('Click "Add Test Case" to get started!')
@@ -148,7 +154,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.layout.setAlignment(self.nullTestCase, QtCore.Qt.AlignCenter)
 
         self.testCasePointsLabel = QtWidgets.QLabel("Points:")
-        self.testCasePointsLabel.setFixedWidth(50)
+        self.testCasePointsLabel.setFixedWidth(40)
         self.testCasePoints = QtWidgets.QSpinBox()
         self.testCasePoints.setValue(self.defaultTestValue)
         self.testCasePoints.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
@@ -165,6 +171,26 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.matchTypeComboBox.addItem("Result contains benchmark superset")
         self.matchTypeComboBox.activated[int].connect(self.updateMatchType)
 
+        self.startTokenLabel = QtWidgets.QLabel("Start token:")
+        self.startTokenLabel.setFixedWidth(75)
+        self.startToken = QtWidgets.QSpinBox()
+        self.startToken.setValue(0) #TODO pass as arg
+        self.startToken.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
+        self.startToken.valueChanged.connect(self.updateStartToken)
+        self.startToken.setRange(-99999, 99999)
+        self.startToken.setFixedWidth(50)
+        self.startToken.setDisabled(True)
+        
+        self.endTokenLabel = QtWidgets.QLabel("End token:")
+        self.endTokenLabel.setFixedWidth(70)
+        self.endToken = QtWidgets.QSpinBox()
+        self.endToken.setValue(0) #TODO pass as arg
+        self.endToken.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
+        self.endToken.valueChanged.connect(self.updateEndToken)
+        self.endToken.setRange(-99999, 99999)
+        self.endToken.setFixedWidth(50)
+        self.endToken.setDisabled(True)
+
         self.testCaseControls = QtWidgets.QHBoxLayout()
         self.testCaseControls.setContentsMargins(10,20,10,0)
         self.testCaseControls.addWidget(self.testCaseComboBox)
@@ -174,6 +200,11 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.testCaseControls.addSpacing(10)
         self.testCaseControls.addWidget(self.matchTypeLabel)
         self.testCaseControls.addWidget(self.matchTypeComboBox)
+        self.testCaseControls.addSpacing(10)
+        self.testCaseControls.addWidget(self.startTokenLabel)
+        self.testCaseControls.addWidget(self.startToken)
+        self.testCaseControls.addWidget(self.endTokenLabel)
+        self.testCaseControls.addWidget(self.endToken)
 
         self.layout.addLayout(self.testCaseControls)
 
