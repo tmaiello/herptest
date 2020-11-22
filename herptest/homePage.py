@@ -128,6 +128,7 @@ class HomePage(QtWidgets.QWidget):
         self.runTests.setEnabled(False)
         self.runTests.repaint()
 
+        #TODO break this into a subprocess to stop hanging up the main thread
         while True:
             output = process.stdout.readline()
             errorOutput = process.stderr.readline()            
@@ -150,7 +151,9 @@ class HomePage(QtWidgets.QWidget):
 
         self.runTests.setText("Run Tests")
         self.runTests.setEnabled(True)  
+        #TODO only show results button if the process exited successfully
         self.showResultsButton()
 
     def switchToResults(self):
-        self.raiseResultsTab(*self.raiseResultsTabArgs)
+        #pass the filepath of the results csv and the raise function
+        self.raiseResultsTab(self.testSuitePath.text() + "/Results/summary.csv", *self.raiseResultsTabArgs)
