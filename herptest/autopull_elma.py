@@ -14,11 +14,11 @@ class AutopullElma(canvas_interface.AbstractCanvasInterface):
         #this gets called by the createUI method of the parent class
 
         self.automaticDownload = False #this has to happen here, since this gets called BEFORE the constructor
-
         self.controls = QtWidgets.QHBoxLayout()
 
         self.downloadBox = QtWidgets.QGroupBox("Download Assignment Submissions")
         downloadGrid = QtWidgets.QGridLayout()
+
 
         if self.automaticDownload:
             self.downloadDestLabel = QtWidgets.QLabel("Download Location:")
@@ -38,10 +38,13 @@ class AutopullElma(canvas_interface.AbstractCanvasInterface):
             downloadGrid.addWidget(self.downloadDestLabel, 0,0, 1,2) #rowspan 1 and column span 2
             downloadGrid.addWidget(self.downloadDest, 1,0, 1,2) #rowspan 1 and column span 2
 
+
         downloadGrid.addWidget(QtWidgets.QLabel(), 2,0, 1,2)#rowspan 1 and column span 2, spacing
 
         self.downloadAssignments = QtWidgets.QPushButton("Download Submissions for Selected Assignment")
+
         self.downloadAssignments.clicked.connect(self.handleDownloadManual) #TODO change this function 
+
         self.downloadAssignments.setEnabled(False)
         downloadGrid.addWidget(self.downloadAssignments, 3,0, 1,2) #rowspan 1 and column span 2
 
@@ -188,7 +191,7 @@ class AutopullElma(canvas_interface.AbstractCanvasInterface):
         else:
             self.downloadStatus.setText("Status: Opened download link")
             self.downloadStatus.setStyleSheet("color: black")
-        
+
 
     def handleELMA(self):
         self.elmaStatus.setText("Status: Running ELMA")
