@@ -9,6 +9,7 @@ class MossUtil:
         if self.userid == None:
             raise ValueError("Non-existant Moss Token, try running --setupenv")
 
+
     # Returns mosspy object bound to userid and language
     # Language choices:
     # language_list = ["c", "cc", "java", "ml", "pascal", "ada",
@@ -57,12 +58,14 @@ class MossUtil:
                 # print(os.path.join(student, submission))
             # self.moss_obj.addFilesByWildcard("submission/a01-*.py")
 
+
     # Sends files via url created with moss_obj
     def send_files(self):
         self.url = self.moss_obj.send() # Submission Report URL
         # self.url = self.moss_obj.send(lambda: print('*', end='', flush=True))
 
         print ("Report Url: " + self.url)
+
 
     def save_files(self):
         # Save report file
