@@ -20,7 +20,8 @@ setup(
         'vix',
         'virtualbox',
         'pyside2',
-        'canvasapi'
+        'canvasapi',
+        'mosspy'
     ],
     package_data={'herptest': ['herptest/*.png']},
     include_package_data=True,
