@@ -161,6 +161,9 @@ Runs the test identified by test_number and project_context, capturing the penal
 `runProjectPenalty(penalty_number, project_context)`
 Runs the penalty test identified by penalty_number and project_context, returning its value.
 
+`analyzeRunLog(location)`
+Analyzes the run.log returned from the VM, returning a string containing the values to add to the csv and the total score.
+
 ### Build Namespace
 The build namespace objects holds paths and build commands. It must provide the following interface:
 

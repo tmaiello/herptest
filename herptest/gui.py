@@ -1,7 +1,7 @@
 import sys
 import time, random, pathlib
 from PySide2 import QtCore, QtWidgets, QtGui
-from . import homePage, testSuiteCreator, resultsPage, canvasUploader, autopull_elma
+from . import homePage, testSuiteCreator, resultsPage, canvasUploader, autopull_elma, vmPage
 
 
         
@@ -21,6 +21,8 @@ def initWindow():
     canvasUploaderInst = tabContainer.widget(3)
     tabContainer.addTab(autopull_elma.AutopullElma(), "Auto-Pull && ELMA")
     elmaInst = tabContainer.widget(4)
+    tabContainer.addTab(vmPage.VmPage(), "VM Config")
+    vmPageInst = tabContainer.widget(5)
 
 
     #give the home page the funcion to call when the SHOW RESULTS button is clicked
