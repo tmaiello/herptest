@@ -7,31 +7,44 @@ class AutopullElma(canvas_interface.AbstractCanvasInterface):
     def __init__(self):
         super().__init__()
 
-        #until the download link in canvas.py gets fixed, this will force the download button to be greyed out
-        self.downloadPossible = False
+        #this will force the download button to be greyed out
+        self.downloadPossible = True
 
     def createControls(self):
         #this gets called by the createUI method of the parent class
+
+        self.automaticDownload = False #this has to happen here, since this gets called BEFORE the constructor
         self.controls = QtWidgets.QHBoxLayout()
 
         self.downloadBox = QtWidgets.QGroupBox("Download Assignment Submissions")
         downloadGrid = QtWidgets.QGridLayout()
 
-        self.downloadDestLabel = QtWidgets.QLabel("Download Location:")
-        self.downloadDest = QtWidgets.QLineEdit()
-        self.downloadDest.setText(os.getcwd())
-        self.downloadDestSelect = QtWidgets.QPushButton("Browse")
-        self.downloadDestSelect.clicked.connect(self.downloadFilePicker)
-        self.downloadDestSelect.setFixedWidth(100)
 
-        downloadGrid.addWidget(self.downloadDestLabel, 0,0)
-        downloadGrid.addWidget(self.downloadDestSelect, 0,1)
-        downloadGrid.addWidget(self.downloadDest, 1,0, 1,2) #rowspan 1 and column span 2
+        if self.automaticDownload:
+            self.downloadDestLabel = QtWidgets.QLabel("Download Location:")
+            self.downloadDest = QtWidgets.QLineEdit()
+            self.downloadDest.setText(os.getcwd())
+            self.downloadDestSelect = QtWidgets.QPushButton("Browse")
+            self.downloadDestSelect.clicked.connect(self.downloadFilePicker)
+            self.downloadDestSelect.setFixedWidth(100)
+
+            downloadGrid.addWidget(self.downloadDestLabel, 0,0)
+            downloadGrid.addWidget(self.downloadDestSelect, 0,1)
+            downloadGrid.addWidget(self.downloadDest, 1,0, 1,2) #rowspan 1 and column span 2
+        else:
+            self.downloadDestLabel = QtWidgets.QLabel("Manual download mode is enabled")
+            self.downloadDest = QtWidgets.QLabel("Log in to Canvas using your default browser;\n the download link will open automatically.")
+
+            downloadGrid.addWidget(self.downloadDestLabel, 0,0, 1,2) #rowspan 1 and column span 2
+            downloadGrid.addWidget(self.downloadDest, 1,0, 1,2) #rowspan 1 and column span 2
+
 
         downloadGrid.addWidget(QtWidgets.QLabel(), 2,0, 1,2)#rowspan 1 and column span 2, spacing
 
         self.downloadAssignments = QtWidgets.QPushButton("Download Submissions for Selected Assignment")
-        self.downloadAssignments.clicked.connect(self.handleDownload)
+
+        self.downloadAssignments.clicked.connect(self.handleDownloadManual) #TODO change this function 
+
         self.downloadAssignments.setEnabled(False)
         downloadGrid.addWidget(self.downloadAssignments, 3,0, 1,2) #rowspan 1 and column span 2
 
@@ -93,7 +106,7 @@ class AutopullElma(canvas_interface.AbstractCanvasInterface):
                 self.downloadStatus.setStyleSheet("color: black")
             else:
                 self.downloadAssignments.setEnabled(False)
-                self.downloadStatus.setText("Status: Download disabled")
+                self.downloadStatus.setText("Status: Download disabled") 
                 self.downloadStatus.setStyleSheet("color: black")
         else:
             self.downloadAssignments.setEnabled(False)
@@ -157,6 +170,27 @@ class AutopullElma(canvas_interface.AbstractCanvasInterface):
         self.downloadStatus.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.downloadStatus.setText(f"<a href=\"{link}\">Click to open in Browser</a>")
         #self.downloadStatus.setStyleSheet("color: blue; text-decoration: underline")
+
+    def handleDownloadManual(self):
+        #this method uses the SUPERHACK of opening the weblink with cmd :)
+        # cmd.exe /C start http://localhost
+
+        link = self.canvasWrapper.get_download_link(self.currentCourse, self.currentAssignment)
+
+        process = subprocess.Popen(['cmd.exe', '/C', 'start', link], stdout=subprocess.PIPE)
+        
+        return_code = None
+        while True:
+            return_code = process.poll()
+            if return_code is not None:
+                #print('RETURN CODE', return_code)
+                break
+        if return_code != 0:
+            self.downloadStatus.setText("Status: Opening download link failed")
+            self.downloadStatus.setStyleSheet("color: red")
+        else:
+            self.downloadStatus.setText("Status: Opened download link")
+            self.downloadStatus.setStyleSheet("color: black")
 
 
     def handleELMA(self):
