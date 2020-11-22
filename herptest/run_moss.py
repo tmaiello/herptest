@@ -48,6 +48,7 @@ def main():
         moss_obj.add_files("basefiles","submissions")
     
     moss_obj.send_files()
+    moss_obj.save_files()
 
 
 if __name__ == "__main__":

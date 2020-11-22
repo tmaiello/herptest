@@ -69,4 +69,4 @@ class MossUtil:
         self.moss_obj.saveWebPage(self.url, "report.html")
 
         # Download whole report locally including code diff links
-        mosspy.download_report(self.url, ".", connections=8, log_level=10, on_read=lambda url:  print('*', end='', flush=True))
+        mosspy.download_report(self.url, "report/", connections=8)
