@@ -1,10 +1,13 @@
-import sys
+import sys, os
 import time, random, pathlib
 from PySide2 import QtCore, QtWidgets, QtGui
 from . import homePage, testSuiteCreator, resultsPage, canvasUploader, autopull_elma, vmPage
 
 
-        
+
+def initEnviron():
+    os.environ["LIBGL_ALWAYS_INDIRECT"] = "1"
+    os.environ["XDG_RUNTIME_DIR"] = "/tmp/peng-runtime"
 def initWindow():
 
     window = QtWidgets.QMainWindow()
@@ -58,6 +61,7 @@ def createStatusBar(window):
     window.setStatusBar(status)
 
 def main():
+    initEnviron()
     app = QtWidgets.QApplication([])
 
     if len(sys.argv) > 1 and sys.argv[1] == "--no-splash":
