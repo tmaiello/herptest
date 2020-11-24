@@ -55,9 +55,12 @@ class StatsModel(QtCore.QAbstractTableModel):
         if len(data) > 1:
             scores = [float(entry[2]) for entry in data[1:]]    
             self.dataDict.append(["Mean score", np.mean(scores)])
-            self.dataDict.append(["Median score", np.median(scores)])
+            self.dataDict.append(["Highest score", np.max(scores)])
+            self.dataDict.append(["Lowest score", np.min(scores)])
+            self.dataDict.append(["Median", np.median(scores)])
             self.dataDict.append(["Q1", np.percentile(scores, 25)])
-            self.dataDict.append(["Q3", np.percentile(scores, 50)])
+            self.dataDict.append(["Q2", np.percentile(scores, 50)])
+            self.dataDict.append(["Q3", np.percentile(scores, 75)])
             self.dataDict.append(["Standard Deviation", np.std(scores)])
             for item in self.dataDict:
                 item[1] = "{:.2f}".format(item[1])
@@ -101,6 +104,8 @@ class ResultsPage(QtWidgets.QWidget):
 
         data = []
 
+        self.resultsContainer = QtWidgets.QHBoxLayout()
+
         self.model = ResultsTableModel(data)
         self.tableView = QtWidgets.QTableView()
         self.tableView.setModel(self.model)
@@ -109,43 +114,153 @@ class ResultsPage(QtWidgets.QWidget):
         self.verticalHeader = self.tableView.verticalHeader()
         self.horizontalHeader.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.verticalHeader.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        self.horizontalHeader.setStretchLastSection(True)
+        self.horizontalHeader.setStretchLastSection(False)
 
+        self.tableView.clicked[QtCore.QModelIndex].connect(self.handleSelection)
+
+
+        self.detailsModel = ResultsTableModel(data)
+        self.detailsView = QtWidgets.QTableView()
+        self.detailsView.setModel(self.detailsModel)
+
+        self.detailsHorizontalHeader = self.tableView.horizontalHeader()
+        self.detailsVerticalHeader = self.tableView.verticalHeader()
+        self.detailsHorizontalHeader.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.detailsVerticalHeader.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.detailsHorizontalHeader.setStretchLastSection(False)
+
+        self.resultsContainer.addWidget(self.tableView)
+        self.resultsContainer.addWidget(self.detailsView)
+
+
+        self.statsContainer = QtWidgets.QHBoxLayout()
         self.statsModel = StatsModel(data)
         self.statsView = QtWidgets.QTableView()
         self.statsView.setModel(self.statsModel)
 
         self.statsHeader = self.statsView.horizontalHeader()
         self.statsHeader.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.statsHeader.setStretchLastSection(False)
+
+        self.controls = QtWidgets.QWidget()
+        self.controlsContainer = QtWidgets.QGridLayout()
+        self.controls.setMinimumWidth(300)
+
+        self.dataSourceLabel = QtWidgets.QLabel("Select Test Results: (summary.csv)")
+        self.dataSource = QtWidgets.QLineEdit()
+        self.dataSource.setText("...")
+        self.dataSourceSelect = QtWidgets.QPushButton("Browse")
+        self.dataSourceSelect.clicked.connect(self.dataSourceFilePicker)
+        self.dataSourceSelect.setFixedWidth(100)
+        self.dataSourceLoad = QtWidgets.QPushButton("Load")
+        self.dataSourceLoad.clicked.connect(self.handleLoad)
+        self.dataSourceLoad.setFixedWidth(100)
+
+        self.currentStatus = QtWidgets.QLabel("")
+        self.controlsContainer.addWidget(self.currentStatus, 0,0,1,2)
+        self.controlsContainer.addWidget(QtWidgets.QLabel(), 1,0, 2,2)
+        self.controlsContainer.addWidget(self.dataSourceLabel, 2,0, 1,2) #rowspan 1 and column span 2
+        self.controlsContainer.addWidget(self.dataSource, 3,0, 1,2) #rowspan 1 and column span 2
+        self.controlsContainer.addWidget(self.dataSourceSelect, 4,0)
+        self.controlsContainer.addWidget(self.dataSourceLoad, 4,1)
+        self.controlsContainer.addWidget(QtWidgets.QLabel(), 5,0, 2,2)
+
+        self.controls.setLayout(self.controlsContainer)
+        self.statsContainer.addWidget(self.statsView)
+        self.statsContainer.addWidget(self.controls)
 
         self.layout = QtWidgets.QVBoxLayout()
-        self.layout.addWidget(self.tableView)
-        self.layout.addWidget(self.statsView)
+        self.layout.addLayout(self.resultsContainer)
+        self.layout.addLayout(self.statsContainer)
 
-        #TODO add button to load specific test result
         
         self.setLayout(self.layout)
     
 
+    def dataSourceFilePicker(self):
+        dialog = QtWidgets.QFileDialog(self)
+        dialog.setFileMode(QtWidgets.QFileDialog.ExistingFile)
+        dialog.setWindowTitle("Select Test Results File:")
+        dialog.setNameFilter("CSV (*.csv)")
 
+        if dialog.exec_():
+            self.dataSource.setText(dialog.selectedFiles()[0])
 
-    def loadResults(self, resultsPath, raiseFunc, raiseArgs):
-        #TODO: load data here
+    def handleLoad(self):
+        if self.dataSource.text() == "...":
+            self.dataSourceFilePicker()
+        self.loadResults(self.dataSource.text())
 
+    def loadResults(self, resultsPath, raiseFunc= lambda x: None, raiseArgs= None):
+        self.dataSource.setText(resultsPath)#useful if this is called externally
+        self.dataSourcePath = resultsPath #used when calculating the directory location of detailed results
         data = []
         with open(resultsPath, newline='') as resultsFile:
             fileReader = csv.reader(resultsFile, delimiter=',')
+            firstRow = True
             for row in fileReader:
-                data.append(row)
+                if firstRow:
+                    firstRow = False
+                    data.append(row + ["Show Details"])
+                else:
+                    data.append(row + ['->'])
 
 
 
         self.model = ResultsTableModel(data)
         self.tableView.setModel(self.model)
+        for i in range(0,self.model.columnCount()):
+            self.tableView.resizeColumnToContents(i)
 
         self.statsModel = StatsModel(data)
         self.statsView.setModel(self.statsModel)
-        
+        for i in range(0,self.statsModel.columnCount()):
+            self.statsView.resizeColumnToContents(i)
 
         raiseFunc(raiseArgs)
 
+    def showDetails(self, studentName, studentLMS):
+        data = []
+        resultsDirectory = self.dataSourcePath.rsplit("/", 1)[0]
+        studentDirName = studentName
+        if studentLMS != "NONE":
+            studentDirName += f"_{studentLMS}"
+        studentFilePath = resultsDirectory + f"/{studentDirName}/result.csv"
+        with open(studentFilePath, newline='') as resultsFile:
+            fileReader = csv.reader(resultsFile, delimiter=',')
+            rowsToSkip = 4
+            numTestCases = -1
+            for row in fileReader:
+                if rowsToSkip == 2:
+                    #this row contains the number of tests, use this to separate the stats
+                    numTestCases = int(row[0].rsplit(":", 1)[1][:-1])
+                if rowsToSkip > 0:
+                    rowsToSkip -= 1
+                    continue
+
+                if numTestCases < 0:
+                    #no more test cases, read the footer information
+                    if len(row) > 0:
+                        text = row[0].rsplit(":", 1)[0]
+                        num = row[0].rsplit(":", 1)[1]
+                        data.append([text, num, "", ""])
+                    else:
+                        data.append(["", "", "", ""])
+                else:
+                    #keep processing
+                    data.append(row)
+                    numTestCases -= 1
+
+        
+        self.detailsModel = ResultsTableModel(data)
+        self.detailsView.setModel(self.detailsModel)
+        for i in range(0,self.detailsModel.columnCount()):
+            self.detailsView.resizeColumnToContents(i)
+        self.currentStatus.setText(f"Showing Details for {studentDirName}")
+
+    def handleSelection(self, index):
+        data = self.model.data(index)
+        if data.find("->") != -1:
+            name = self.model.data(self.model.createIndex(index.row(), 0))
+            lms = self.model.data(self.model.createIndex(index.row(), 1))
+            self.showDetails(name, lms)
