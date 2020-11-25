@@ -4,6 +4,7 @@ import numpy as np
 
 
 class ResultsTableModel(QtCore.QAbstractTableModel):
+    #used as the model for the contents of summary.csv
     def __init__(self, data=None):
         QtCore.QAbstractTableModel.__init__(self)
         self.loadData(data)
@@ -45,6 +46,7 @@ class ResultsTableModel(QtCore.QAbstractTableModel):
         return None
 
 class StatsModel(QtCore.QAbstractTableModel):
+    #used as a model for the contents of individual student result.csv
     def __init__(self, data=None):
         QtCore.QAbstractTableModel.__init__(self)
         self.calculateStats(data)
@@ -96,14 +98,15 @@ class StatsModel(QtCore.QAbstractTableModel):
         return None
 
 class ResultsPage(QtWidgets.QWidget):
-
+    #a flexible interface page to view the summary.csv and linked student results in one view with stats
     def __init__(self):
         super().__init__()
 
         
-
+        #create the page with no data to start, this gets regenerated when new data comes in
         data = []
-
+        
+        #create the top left results table
         self.resultsContainer = QtWidgets.QHBoxLayout()
 
         self.model = ResultsTableModel(data)
@@ -118,7 +121,7 @@ class ResultsPage(QtWidgets.QWidget):
 
         self.tableView.clicked[QtCore.QModelIndex].connect(self.handleSelection)
 
-
+        #and create the top right detailed student results table
         self.detailsModel = ResultsTableModel(data)
         self.detailsView = QtWidgets.QTableView()
         self.detailsView.setModel(self.detailsModel)
@@ -132,7 +135,7 @@ class ResultsPage(QtWidgets.QWidget):
         self.resultsContainer.addWidget(self.tableView)
         self.resultsContainer.addWidget(self.detailsView)
 
-
+        #this holds the stats table, as well as the status message and loading options
         self.statsContainer = QtWidgets.QHBoxLayout()
         self.statsModel = StatsModel(data)
         self.statsView = QtWidgets.QTableView()
@@ -146,6 +149,7 @@ class ResultsPage(QtWidgets.QWidget):
         self.controlsContainer = QtWidgets.QGridLayout()
         self.controls.setMinimumWidth(300)
 
+        #we create a browse and load option for flexibility; an empty load requests triggers browse anyway
         self.dataSourceLabel = QtWidgets.QLabel("Select Test Results: (summary.csv)")
         self.dataSource = QtWidgets.QLineEdit()
         self.dataSource.setText("...")
@@ -206,12 +210,13 @@ class ResultsPage(QtWidgets.QWidget):
                     data.append(row + ['->'])
 
 
-
+        #create the new data model and plug it into the view, resize
         self.model = ResultsTableModel(data)
         self.tableView.setModel(self.model)
         for i in range(0,self.model.columnCount()):
             self.tableView.resizeColumnToContents(i)
 
+        #calculate the stats and create the model, plug it into the view, resize
         self.statsModel = StatsModel(data)
         self.statsView.setModel(self.statsModel)
         for i in range(0,self.statsModel.columnCount()):
@@ -220,10 +225,12 @@ class ResultsPage(QtWidgets.QWidget):
         raiseFunc(raiseArgs)
 
     def showDetails(self, studentName, studentLMS):
+        #this gets triggered to replace the detailed student results page
         data = []
-        resultsDirectory = self.dataSourcePath.rsplit("/", 1)[0]
+        resultsDirectory = self.dataSourcePath.rsplit("/", 1)[0]#removes "summary.csv" from path
         studentDirName = studentName
         if studentLMS != "NONE":
+            #students can have an LMS or NONE, don't append _NONE to blanks
             studentDirName += f"_{studentLMS}"
         studentFilePath = resultsDirectory + f"/{studentDirName}/result.csv"
         with open(studentFilePath, newline='') as resultsFile:
@@ -259,6 +266,7 @@ class ResultsPage(QtWidgets.QWidget):
         self.currentStatus.setText(f"Showing Details for {studentDirName}")
 
     def handleSelection(self, index):
+        #detects when we should change the details view
         data = self.model.data(index)
         if data.find("->") != -1:
             name = self.model.data(self.model.createIndex(index.row(), 0))
