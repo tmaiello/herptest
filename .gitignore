@@ -3,6 +3,7 @@ dist/
 MANIFEST
 build/
 herptest.egg-info/
+pengtest.egg-info/
 *.txt
 *.env
 venv
@@ -13,3 +14,7 @@ submissions
 basefiles
 report
 report.html
+libclang/
+venv/
+test_suite/
+Instructors/

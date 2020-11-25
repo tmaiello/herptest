@@ -138,16 +138,16 @@ class HomePage(QtWidgets.QWidget):
             rootPath = self.convertPath(self.testSuitePath.text())
             projectPath = self.convertPath(self.projectPath.text())
             # Execute the build on command prompt for VMs
-            process = subprocess.Popen(['cmd.exe', '/C', 'herp', rootPath, projectPath], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+            process = subprocess.Popen(['cmd.exe', '/C', 'peng', rootPath, projectPath], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
             self.outputBox.clear()
-            self.outputBox.appendPlainText("WARNING: console output will not print until finished.\n$ herp " + rootPath + " " + projectPath)
+            self.outputBox.appendPlainText("WARNING: console output will not print until finished.\n$ peng " + rootPath + " " + projectPath)
             self.outputBox.repaint()
         else:
-            command = ['herp']
+            command = ['peng']
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
             
             self.outputBox.clear()
-            self.outputBox.appendPlainText("$ " + " ".join(command) + " " + self.testSuitePath.text() + " " + self.projectPath.text())
+            self.outputBox.appendPlainText("WARNING: console output will not print until finished.\n$ " + " ".join(command) + " " + self.testSuitePath.text() + " " + self.projectPath.text())
             self.outputBox.repaint()
 
         self.runTests.setText("Running...")
@@ -174,10 +174,10 @@ class HomePage(QtWidgets.QWidget):
                     self.outputBox.repaint()
 
                     if isVM:
-                        # If there was an error running herp for VMs, open a message box to alert the user of the error
+                        # If there was an error running peng for VMs, open a message box to alert the user of the error
                         msgBox = QtWidgets.QMessageBox()
-                        msgBox.setWindowTitle("Error running herp")
-                        msgBox.setText("Error running herp! Please ensure that it is installed on Command Prompt.")
+                        msgBox.setWindowTitle("Error running peng")
+                        msgBox.setText("Error running peng! Please ensure that it is installed on Command Prompt.")
                         msgBox.exec_()
 
                 break

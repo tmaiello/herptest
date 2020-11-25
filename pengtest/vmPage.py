@@ -3,7 +3,7 @@ import os, subprocess
 from pathlib import Path, PureWindowsPath
 
 DEFAULT_CONFIG_BEGIN = "from os import path\n\
-from herptest import toolbox\n\
+from pengtest import toolbox\n\
 from types import SimpleNamespace\n\
 commands = SimpleNamespace()\n\
 general = SimpleNamespace()\n\

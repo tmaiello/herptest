@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import sys
 import argparse
 # TODO: fix import formatting for CLI command
-from herptest.env_wrapper import EnvWrapper
+from pengtest.env_wrapper import EnvWrapper
 
 # Version Number for Release
 VERSION_NUM = '0.9.9.4'
@@ -310,13 +310,13 @@ def main():
 
     # CanvasUtil object, driver object for functionality, if you want beta or production, a different .env path, or token, enter here into constructor.
 
-    #try:
-    courses = canvas_util.get_courses_this_semester()
-    """except:
+    try:
+        courses = canvas_util.get_courses_this_semester()
+    except:
         print("| Canvas Util Object failed to be created. Is your API key valid?")
         print("| Hint: try using --setupenv to set up your environment variables.")
         print("└─> exiting with error")
-        exit(-1) """
+        exit(-1)
     course_names = list(courses.keys())
 
     print("-=- Listing all courses for which you have role: Teacher in current enrollemnt period -=-")
