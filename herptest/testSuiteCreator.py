@@ -28,6 +28,8 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.defaultMatchType = defaultMatchType
         self.defaultStartToken = defaultStartToken
         self.defaultEndToken = defaultEndToken
+        self.savePath = None
+        self.solutionFile = None
 
         self.containerLayout = QtWidgets.QVBoxLayout()
         self.containerLayout.setContentsMargins(0,0,0,0)
@@ -57,12 +59,14 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.breadcrumbBar.setFixedHeight(20)
         self.breadcrumbBar.setContentsMargins(5,0,5,0)
         self.containerLayout.addWidget(self.breadcrumbBar)
-        self.updateBreadcrumb("No directory selected")
+        self.updateBreadcrumb()
         self.updateTotalPoints()
 
-    def updateBreadcrumb(self, activeDirectory):
-        self.activeDirectory = activeDirectory
-        self.breadcrumb.setText("Active Test Suite: " + self.activeDirectory)
+    def updateBreadcrumb(self):
+        if not self.savePath:
+            self.breadcrumb.setText("No test case file saved...")
+        else:
+            self.breadcrumb.setText("Active Test Suite: " + os.path.basename(self.savePath))
 
     def updateTotalPoints(self):
         #make sure that the current test case gets updated, will not call on Add Test Case widget
@@ -232,18 +236,19 @@ class TestSuiteCreator(QtWidgets.QWidget):
         
     
     def solutionFilePicker(self):
-        dialog = QtWidgets.QFileDialog(self)
-        dialog.setFileMode(QtWidgets.QFileDialog.ExistingFile)
-        dialog.setWindowTitle("Select Solution Code")
-        dialog.setDirectory(os.getcwd()) #TODO get a better default
+        newSolutionFile, _ = QtWidgets.QFileDialog.getOpenFileName(self, caption="Select Solution Code", filter="Python Files (*.py)")
 
-        if dialog.exec_():
-            solutionCodeBaseName = os.path.basename(os.path.normpath(dialog.selectedFiles()[0]))
-            self.generateTestSuite(solutionCodeBaseName)
+        if newSolutionFile:
+            self.solutionFile = newSolutionFile
+            self.writeTestSuiteJson()
+            #TODO generate tests.py, project.py, config.py(?)
+            self.updateBreadcrumb()
 
-    def generateTestSuite(self, basename):
+    def writeTestSuiteJson(self):
         data = {}
-        data['solution_file'] = basename
+        #test suite solution file only written when generating test suite (not saving)
+        if self.solutionFile:
+            data['solution_file'] = self.solutionFile
         data['test_cases'] = []
         for index in range(0, self.testCaseStack.count()-1):
             testCase = {}
@@ -257,7 +262,11 @@ class TestSuiteCreator(QtWidgets.QWidget):
             testCase['start_token'] = self.testCaseStack.widget(index).startToken
             testCase['end_token'] = self.testCaseStack.widget(index).endToken
             data['test_cases'].append(testCase)
-        with open(basename + '_testsuite.json', 'w') as outfile: #TODO figure out where to save this path
+        #if a save path has not already been designated (user has not saved test suite), save path defaults to cwd (TODO: change to put in folder once entire test suite is generated?)
+        if not self.savePath:
+            newFileName = os.path.basename(os.path.splitext(self.solutionFile)[0]) + "_test_suite.json"
+            self.savePath = os.path.join(os.getcwd(), newFileName)
+        with open(self.savePath, 'w') as outfile: #TODO figure out where to save this path
             json.dump(data, outfile)
 
     def changeTestCase(self, index):
@@ -346,16 +355,28 @@ class TestSuiteCreator(QtWidgets.QWidget):
         if path == "":
             path = os.getcwd()
             #TODO make this open a file picker instead
-        self.updateBreadcrumb(path)
+        self.updateBreadcrumb()
 
-    def saveTestSuite(self, saveAs =False):
-        #TODO implement saving test suite
+    def saveTestSuite(self, saveAs=False):
         if(self.testCaseStack.count() == 1):
             #TODO display error message
             return
+        #if user clicks saveAs or if the user has not saved before
+        if not self.savePath or saveAs:
+            newSavePath, _ = QtWidgets.QFileDialog.getSaveFileName(self, caption="Select Test Case Save Path", filter="JSON Files (*.json)")
+            if newSavePath:
+                if not newSavePath.endswith(".json"):
+                    newSavePath = newSavePath + ".json"
+                self.savePath = newSavePath
+                self.writeTestSuiteJson()
+                self.updateBreadcrumb()
+
+        else:
+            #TODO add feedback in breadcrumb
+            self.writeTestSuiteJson()
 
 
     def closeTestSuite(self):
         print("close test suite")
         #TODO implement closing test suite and prompting to save if changes have been made
-        self.updateBreadcrumb("No directory selected")
+        self.updateBreadcrumb()
