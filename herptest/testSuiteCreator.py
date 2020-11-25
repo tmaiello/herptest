@@ -81,12 +81,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
     def updateMatchType(self, index):
         # match type converted to values used in tests.py on test suite code generation
         self.testCaseStack.widget(self.testCaseStack.currentIndex()).matchType = index
-        if index == 1 or index == 2:
-            self.startToken.setEnabled(True)
-            self.endToken.setEnabled(True)
-        else:
-            self.startToken.setDisabled(True)
-            self.endToken.setDisabled(True)
+        self.checkEnableWidgets()
         
 
     def updateStartToken(self, token):
@@ -270,6 +265,24 @@ class TestSuiteCreator(QtWidgets.QWidget):
         with open(self.savePath, 'w') as outfile: 
             json.dump(data, outfile)
 
+    def checkEnableWidgets(self):
+        if(self.testCaseStack.count() > 1):
+            self.generateTestSuiteButton.setEnabled(True)
+            self.testCasePoints.setEnabled(True)
+            self.matchTypeComboBox.setEnabled(True)
+            currMatchType = self.testCaseStack.widget(self.testCaseStack.currentIndex()).matchType
+            if(currMatchType == 1 or currMatchType == 2):
+                self.startToken.setEnabled(True)
+                self.endToken.setEnabled(True)
+            else:
+                self.startToken.setDisabled(True)
+                self.endToken.setDisabled(True)
+        else:
+            self.generateTestSuiteButton.setDisabled(True)
+            self.testCasePoints.setDisabled(True)
+            self.matchTypeComboBox.setDisabled(True)
+        
+
     def changeTestCase(self, index):
         if index == self.testCaseComboBox.count()-1:
             self.addTestCase()
@@ -284,21 +297,16 @@ class TestSuiteCreator(QtWidgets.QWidget):
     def addTestCase(self):
         testCaseTitle, ok = QtWidgets.QInputDialog().getText(self, "Test Case Name", "Enter test case name:", QtWidgets.QLineEdit.Normal) 
         if ok and testCaseTitle:
-            self.generateTestSuiteButton.setEnabled(True)
-            self.testCasePoints.setEnabled(True)
-            self.matchTypeComboBox.setEnabled(True)
-            self.startToken.setDisabled(True)
-            self.endToken.setDisabled(True)
             self.testCaseStack.insertWidget(self.testCaseStack.count()-1, self.TestCase(testCaseTitle, self.defaultTestValue, self.defaultMatchType, self.defaultStartToken, self.defaultEndToken))
             self.testCaseComboBox.insertItem(self.testCaseComboBox.count()-1, testCaseTitle)
             self.changeTestCase(self.testCaseStack.count()-2)
             self.updateTotalPoints()
+            self.checkEnableWidgets()
         else:
             #if user cancels, test case switches to last test case -> TODO preserve previous test case instead of defaulting to last?
             if self.testCaseStack.count() > 1:
                 self.changeTestCase(self.testCaseStack.count()-2)
-            else:
-                self.generateTestSuiteButton.setDisabled(True)
+            self.checkEnableWidgets()
                 
 
     def removeTestCase(self, index):
@@ -321,10 +329,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
             if self.testCaseStack.count() == 2:
                 #we just deleted the penultimate real test case, make sure that the remaining one is selected
                 self.changeTestCase(0)
-        else:
-            self.generateTestSuiteButton.setDisabled(True)
-            self.testCasePoints.setDisabled(True)
-            self.matchTypeComboBox.setDisabled(True)
+        self.checkEnableWidgets()
 
 
     def renameTestCase(self, index):
@@ -379,8 +384,9 @@ class TestSuiteCreator(QtWidgets.QWidget):
                     self.testCaseStack.insertWidget(self.testCaseStack.count()-1, self.TestCase(testCaseTitle, points, matchType, startToken, endToken))
                     self.testCaseStack.widget(self.testCaseStack.count()-2).inputText.setPlainText("\n".join(inputList))
                     self.testCaseComboBox.insertItem(self.testCaseComboBox.count()-1, testCaseTitle)
-                self.changeTestCase(0)
-                
+
+        self.changeTestCase(0)
+        self.checkEnableWidgets()
         self.updateBreadcrumb()
 
     def saveTestSuite(self, saveAs=False):
