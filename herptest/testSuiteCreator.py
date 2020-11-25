@@ -4,7 +4,7 @@ import os, subprocess, json
 class TestSuiteCreator(QtWidgets.QWidget):
 
     class TestCase(QtWidgets.QWidget):
-        def __init__(self, name, defaultTestValue, defaultMatchType, defaultStartToken, defaultEndToken):
+        def __init__(self, name, testValue, matchType, startToken, endToken):
             super().__init__()
             self.layout = QtWidgets.QHBoxLayout()
             self.textBox = QtWidgets.QVBoxLayout()
@@ -16,10 +16,10 @@ class TestSuiteCreator(QtWidgets.QWidget):
             self.layout.addLayout(self.textBox)
             self.setLayout(self.layout)
             self.name = name
-            self.points = defaultTestValue
-            self.matchType = defaultMatchType
-            self.startToken = defaultStartToken
-            self.endToken = defaultEndToken
+            self.points = testValue
+            self.matchType = matchType
+            self.startToken = startToken
+            self.endToken = endToken
 
     def __init__(self, defaultTestValue=10, defaultMatchType=0, defaultStartToken=0, defaultEndToken=0):
         super().__init__()
@@ -241,6 +241,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
         if newSolutionFile:
             self.solutionFile = newSolutionFile
             self.writeTestSuiteJson()
+            #TODO query for test suite folder
             #TODO generate tests.py, project.py, config.py(?)
             self.updateBreadcrumb()
 
@@ -266,7 +267,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
         if not self.savePath:
             newFileName = os.path.basename(os.path.splitext(self.solutionFile)[0]) + "_test_suite.json"
             self.savePath = os.path.join(os.getcwd(), newFileName)
-        with open(self.savePath, 'w') as outfile: #TODO figure out where to save this path
+        with open(self.savePath, 'w') as outfile: 
             json.dump(data, outfile)
 
     def changeTestCase(self, index):
@@ -281,13 +282,15 @@ class TestSuiteCreator(QtWidgets.QWidget):
             self.endToken.setValue(self.testCaseStack.widget(index).endToken)
 
     def addTestCase(self):
-        dialog, ok = QtWidgets.QInputDialog().getText(self, "Test Case Name", "Enter test case name:", QtWidgets.QLineEdit.Normal) 
-        if ok and dialog:
+        testCaseTitle, ok = QtWidgets.QInputDialog().getText(self, "Test Case Name", "Enter test case name:", QtWidgets.QLineEdit.Normal) 
+        if ok and testCaseTitle:
             self.generateTestSuiteButton.setEnabled(True)
             self.testCasePoints.setEnabled(True)
             self.matchTypeComboBox.setEnabled(True)
-            self.testCaseStack.insertWidget(self.testCaseStack.count()-1, self.TestCase(dialog, self.defaultTestValue, self.defaultMatchType, self.defaultStartToken, self.defaultEndToken))
-            self.testCaseComboBox.insertItem(self.testCaseComboBox.count()-1, dialog)
+            self.startToken.setDisabled(True)
+            self.endToken.setDisabled(True)
+            self.testCaseStack.insertWidget(self.testCaseStack.count()-1, self.TestCase(testCaseTitle, self.defaultTestValue, self.defaultMatchType, self.defaultStartToken, self.defaultEndToken))
+            self.testCaseComboBox.insertItem(self.testCaseComboBox.count()-1, testCaseTitle)
             self.changeTestCase(self.testCaseStack.count()-2)
             self.updateTotalPoints()
         else:
@@ -348,13 +351,36 @@ class TestSuiteCreator(QtWidgets.QWidget):
         print("handle action for:" + action)
         #TODO: add implementation for cut, copy, paste
 
-    def openTestSuite(self, path=""):
-        print("open test suite")
-        #TODO implement opening the test suite
-        
-        if path == "":
-            path = os.getcwd()
-            #TODO make this open a file picker instead
+    def openTestSuite(self):
+        #TODO prompt user to save before opening new test suite
+        testCasesPath, _ = QtWidgets.QFileDialog.getOpenFileName(self, caption="Select Test Cases File", filter="JSON Files (*.json)")
+        if testCasesPath:
+            #remove currently displayed test cases 
+            while self.testCaseComboBox.count() > 1:
+                target = self.testCaseStack.widget(0)
+                self.testCaseStack.removeWidget(target)
+                self.testCaseComboBox.removeItem(0)
+            with open(testCasesPath, "r") as readFile:
+                data = json.load(readFile)
+                self.savePath = testCasesPath
+                if "solution_file" in data:
+                    self.solutionFile = data["solution_file"]
+                testCases = data["test_cases"]
+                for testCase in testCases:
+                    testCaseTitle = testCase['test_case_title']
+                    inputList = testCase['input_list']
+                    points = testCase['points']
+                    if testCase['match_type'] == -1:
+                        matchType = 2
+                    else:
+                        matchType = testCase['match_type']
+                    startToken = testCase['start_token']
+                    endToken = testCase['end_token']
+                    self.testCaseStack.insertWidget(self.testCaseStack.count()-1, self.TestCase(testCaseTitle, points, matchType, startToken, endToken))
+                    self.testCaseStack.widget(self.testCaseStack.count()-2).inputText.setPlainText("\n".join(inputList))
+                    self.testCaseComboBox.insertItem(self.testCaseComboBox.count()-1, testCaseTitle)
+                self.changeTestCase(0)
+                
         self.updateBreadcrumb()
 
     def saveTestSuite(self, saveAs=False):
@@ -363,7 +389,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
             return
         #if user clicks saveAs or if the user has not saved before
         if not self.savePath or saveAs:
-            newSavePath, _ = QtWidgets.QFileDialog.getSaveFileName(self, caption="Select Test Case Save Path", filter="JSON Files (*.json)")
+            newSavePath, _ = QtWidgets.QFileDialog.getSaveFileName(self, caption="Select Test Cases Save Path", filter="JSON Files (*.json)")
             if newSavePath:
                 if not newSavePath.endswith(".json"):
                     newSavePath = newSavePath + ".json"
