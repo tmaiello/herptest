@@ -4,6 +4,7 @@ from . import env_wrapper
 
 
 class EnvDialog:
+    #creates a self.layout that can be "stolen" by another widget to allow UI replacement without widget replacement
     def __init__(self, exit_call):
         self.generateEnvLoadScreen()
         self.exit_call = exit_call
@@ -33,7 +34,8 @@ class EnvDialog:
 
     def handleEnvLoad(self):
         token = self.envEntry.text() 
-        if len(token) == 69 and token[4] == "~":
+        if len(token) == 64+5 and token[4] == "~":
+            #haha nice
             ew = env_wrapper.EnvWrapper()
             ew.set_env(token, "TOKEN")
             self.exit_call()

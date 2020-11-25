@@ -3,7 +3,7 @@ import os, subprocess
 import numpy as np
 from . import canvas_interface
 
-class CanvasUploader(canvas_interface.AbstractCanvasInterface):
+class CanvasUploadPage(canvas_interface.AbstractCanvasInterface):
 
     def __init__(self):
         super().__init__()
@@ -76,7 +76,7 @@ class CanvasUploader(canvas_interface.AbstractCanvasInterface):
         self.approveUpload()
    
     def handleUpload(self):
-        #TODO can we do this in a worker thread?
+        #can we do this in a worker thread? maybe
         #this method uses the canvasWrapper and canvasUtil attributes of the parent class
         if self.modeSelectTests.checkState() == QtCore.Qt.Checked:
             #test results mode, call matty's code

@@ -2,6 +2,7 @@ from PySide2 import QtCore, QtWidgets, QtGui
 import os, subprocess, asyncio
 
 class HomePage(QtWidgets.QWidget):
+    #main page of the gui, interfaces with peng CLI to run test suites
     def __init__(self):
         super().__init__()
 
@@ -15,6 +16,7 @@ class HomePage(QtWidgets.QWidget):
         self.setLayout(self.layout)
 
     def setResultsFunction(self, raiseResultsTab, args):
+        #for convenience
         self.raiseResultsTab = raiseResultsTab
         self.raiseResultsTabArgs = args
 
@@ -22,7 +24,7 @@ class HomePage(QtWidgets.QWidget):
         self.projectPicker = QtWidgets.QGridLayout()
         self.projectLabel = QtWidgets.QLabel("Path to folder containing projects:")
         self.projectLabel.setMaximumHeight(50)
-        self.projectPath = QtWidgets.QLineEdit(os.getcwd())#TODO get a better default
+        self.projectPath = QtWidgets.QLineEdit(os.getcwd())#this is a decent default, but it's unlikely to be correct
         self.projectPath.setFixedWidth(500)
         self.projectSelect = QtWidgets.QPushButton("Browse")
         self.projectSelect.setFixedWidth(100)
@@ -38,7 +40,7 @@ class HomePage(QtWidgets.QWidget):
         self.testSuitePicker = QtWidgets.QGridLayout()
         self.testSuiteLabel = QtWidgets.QLabel("Path to folder containing test suite:")
         self.testSuiteLabel.setMaximumHeight(50)
-        self.testSuitePath = QtWidgets.QLineEdit(os.getcwd())#TODO get a better default
+        self.testSuitePath = QtWidgets.QLineEdit(os.getcwd())#this is a decent default
         self.testSuitePath.setFixedWidth(500)
         self.testSuiteSelect = QtWidgets.QPushButton("Browse")
         self.testSuiteSelect.setFixedWidth(100)
@@ -71,6 +73,7 @@ class HomePage(QtWidgets.QWidget):
             self.testSuitePath.setText(dialog.selectedFiles()[0])
 
     def createTestOutputFields(self):
+        #generate the bottom part of the UI
         self.outputFields = QtWidgets.QVBoxLayout()
         self.outputLabel = QtWidgets.QLabel("Test Output:")
         self.outputLabel.setMaximumHeight(50)
@@ -110,6 +113,7 @@ class HomePage(QtWidgets.QWidget):
         self.showResults.hide()
     
     def showResultsButton(self):
+        #remove and re-add the widget to correct the order
         self.showResults.show()
         self.testButtons.removeWidget(self.showResults)
         self.testButtons.insertWidget(1,self.showResults)
@@ -131,7 +135,7 @@ class HomePage(QtWidgets.QWidget):
         # Get if it is a VM or not
         isVM = self.isVM.isChecked()
 
-        #TODO: linkage
+        #move to the right test suite path
         os.chdir(self.testSuitePath.text())
 
         if isVM:
@@ -143,7 +147,7 @@ class HomePage(QtWidgets.QWidget):
             self.outputBox.appendPlainText("WARNING: console output will not print until finished.\n$ peng " + rootPath + " " + projectPath)
             self.outputBox.repaint()
         else:
-            command = ['peng']
+            command = ['peng', self.testSuitePath.text(), self.projectPath.text()]
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
             
             self.outputBox.clear()
@@ -154,7 +158,7 @@ class HomePage(QtWidgets.QWidget):
         self.runTests.setEnabled(False)
         self.runTests.repaint()
 
-        #TODO break this into a subprocess to stop hanging up the main thread
+        #wait for updates from the subprocess and paint them to the gui
         while True:
             output = process.stdout.readline()
             errorOutput = process.stderr.readline()            
@@ -184,7 +188,7 @@ class HomePage(QtWidgets.QWidget):
 
         self.runTests.setText("Run Tests")
         self.runTests.setEnabled(True)  
-        #TODO only show results button if the process exited successfully
+        #only show results button if the process exited successfully
         self.showResultsButton()
 
     def switchToResults(self):

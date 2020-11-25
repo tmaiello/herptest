@@ -3,23 +3,24 @@ import os, subprocess
 import numpy as np
 from . import canvas_interface
 
-class AutopullElma(canvas_interface.AbstractCanvasInterface):
+class AutopullElmaPage(canvas_interface.AbstractCanvasInterface):
     def __init__(self):
         super().__init__()
 
-        #this will force the download button to be greyed out
+        #this will force the download button to be greyed out if false
         self.downloadPossible = True
 
     def createControls(self):
         #this gets called by the createUI method of the parent class
 
-        self.automaticDownload = False #this has to happen here, since this gets called BEFORE the constructor
+        #sets whether the manual download hack is enabled
+        self.automaticDownload = False #this has to happen here, since this method gets called BEFORE the constructor
         self.controls = QtWidgets.QHBoxLayout()
 
         self.downloadBox = QtWidgets.QGroupBox("Download Assignment Submissions")
         downloadGrid = QtWidgets.QGridLayout()
 
-
+        #create a different download interface if manual download mode is enabled
         if self.automaticDownload:
             self.downloadDestLabel = QtWidgets.QLabel("Download Location:")
             self.downloadDest = QtWidgets.QLineEdit()
@@ -32,6 +33,7 @@ class AutopullElma(canvas_interface.AbstractCanvasInterface):
             downloadGrid.addWidget(self.downloadDestSelect, 0,1)
             downloadGrid.addWidget(self.downloadDest, 1,0, 1,2) #rowspan 1 and column span 2
         else:
+            #this is a workaround for gatorlink+duo authn to download links being hard to fake
             self.downloadDestLabel = QtWidgets.QLabel("Manual download mode is enabled")
             self.downloadDest = QtWidgets.QLabel("Log in to Canvas using your default browser;\n the download link will open automatically.")
 
@@ -43,7 +45,11 @@ class AutopullElma(canvas_interface.AbstractCanvasInterface):
 
         self.downloadAssignments = QtWidgets.QPushButton("Download Submissions for Selected Assignment")
 
-        self.downloadAssignments.clicked.connect(self.handleDownloadManual) #TODO change this function 
+        #same as above, make sure the right download method is connected for the current state
+        if self.automaticDownload:
+            self.downloadAssignments.clicked.connect(self.handleDownload) 
+        else:
+            self.downloadAssignments.clicked.connect(self.handleDownloadManual) 
 
         self.downloadAssignments.setEnabled(False)
         downloadGrid.addWidget(self.downloadAssignments, 3,0, 1,2) #rowspan 1 and column span 2
@@ -99,6 +105,7 @@ class AutopullElma(canvas_interface.AbstractCanvasInterface):
         self.approveUpload()
 
     def approveUpload(self):
+        #called whenever the status might change (file selection changed, assignment selection changed)
         if self.assignmentReady and self.downloadDest.text() != "" :
             if self.downloadPossible:
                 self.downloadAssignments.setEnabled(True)
@@ -159,20 +166,8 @@ class AutopullElma(canvas_interface.AbstractCanvasInterface):
             self.downloadStatus.setText("Status: Error during download")
             self.downloadStatus.setStyleSheet("color: red")
 
-    def handleDownloadHack(self):
-        #this can be called instead of handleDownload to bypass the actual download step
-        #opens in the user's browser instead!
-        #this doesnt work in WSL though!!
-        link = self.canvasWrapper.get_download_link(self.currentCourse, self.currentAssignment)
-
-        self.downloadStatus.setOpenExternalLinks(True)
-        self.downloadStatus.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByMouse)
-        self.downloadStatus.setFocusPolicy(QtCore.Qt.StrongFocus)
-        self.downloadStatus.setText(f"<a href=\"{link}\">Click to open in Browser</a>")
-        #self.downloadStatus.setStyleSheet("color: blue; text-decoration: underline")
-
     def handleDownloadManual(self):
-        #this method uses the SUPERHACK of opening the weblink with cmd :)
+        #this method uses the method of opening the weblink with cmd :)
         # cmd.exe /C start http://localhost
 
         link = self.canvasWrapper.get_download_link(self.currentCourse, self.currentAssignment)
