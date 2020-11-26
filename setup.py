@@ -34,7 +34,7 @@ setup(
             'peng = pengtest.run_test_suite:main',
             'peng-gui = pengtest.gui:main',
             'csv-upload = pengtest.grade_csv_uploader:main',
-            'canvas-push = pengtest.canvas:main',
+            'peng-canvas = pengtest.canvas:main',
             'moss = pengtest.run_moss:main'
         ]
     }
