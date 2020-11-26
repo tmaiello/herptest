@@ -1,4 +1,4 @@
-__author__ = "Boris Ermakov-Spektor, Adapted by: Tyler Maiello"
+__author__ = "Tyler Maiello, Boris Ermakov-Spektor"
 
 import os
 import requests
@@ -8,14 +8,14 @@ from dotenv import load_dotenv
 import sys
 import argparse
 # TODO: fix import formatting for CLI command
-from herptest.env_wrapper import EnvWrapper
+from pengtest.env_wrapper import EnvWrapper
 
 # Version Number for Release
 VERSION_NUM = '0.9.9.4'
 
 # handle command line args
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='A program to run a set of tests for a programming assignment.')
+    parser = argparse.ArgumentParser(description='A program to upload a CSV for a rubric based assignment to Canvas')
     parser.add_help = True
     parser.add_argument('-V', '-v', '--version', action='version', version='%(prog)s ' + str(VERSION_NUM))
     parser.add_argument('-S', '-s', '--setupenv', action='store_true', help='Run the setup wizard for Canvas API Key Environment Variables')
@@ -72,28 +72,38 @@ class CanvasUtil:
         """
         Get dictionary (name -> id) of courses in this semester
         """
-        response = requests.get(f"{self.canvas_api_url}/courses?enrollment_type=teacher", auth=BearerAuth(self.token))
+        response = requests.get(f"{self.canvas_api_url}/courses?enrollment_type=teacher&include=items&per_page=1000", auth=BearerAuth(self.token)) #enrollment_type changed from teacher
         # print(response.json())
         content = response.json()
-        enrollment_term_id = content[0]["enrollment_term_id"]
+        try:
+            enrollment_term_id = content[0]["enrollment_term_id"]
+        except:
+            #if there are no valid courses, return an empty dict
+            return {}
         for course in content:  # Find the current enrollment term
-            enrollment_term_id = max(enrollment_term_id, int(course["enrollment_term_id"]))
+            try:
+                enrollment_term_id = max(enrollment_term_id, int(course["enrollment_term_id"]))
+            except:
+                pass
+
         # Filter for courses in the current term
         result = {}
         for course in content:
-            if course["enrollment_term_id"] == enrollment_term_id:
-                result[course["name"]] = int(course["id"])
-            ## ----------TEMPORARY FOR TESTING PURPOSES---------------
-            elif course["course_code"] == "BLANCHARD":
-                result[course["name"]] = int(course["id"])
-
+            try:
+                if course["enrollment_term_id"] == enrollment_term_id:
+                    result[course["name"]] = int(course["id"])
+                ## ----------TEMPORARY FOR TESTING PURPOSES---------------
+                elif course["course_code"] == "BLANCHARD":
+                    result[course["name"]] = int(course["id"])
+            except:
+                pass
         return result
 
     def get_section_ids(self, course_id: str) -> list:
         """
         Get a list of all section IDs in a specific course
         """
-        response = requests.get(f"{self.canvas_api_url}/courses/{course_id}/sections", auth=BearerAuth(self.token))
+        response = requests.get(f"{self.canvas_api_url}/courses/{course_id}/sections?include=items&per_page=100", auth=BearerAuth(self.token))
         content = response.json()
         section_ids = []
         for section in content:
@@ -104,7 +114,7 @@ class CanvasUtil:
         """
         Get the id of the first assignment with a name that matches the input
         """
-        response = requests.get(f"{self.canvas_api_url}/courses/{course_id}/assignments", auth=BearerAuth(self.token))
+        response = requests.get(f"{self.canvas_api_url}/courses/{course_id}/assignments?include=items&per_page=100", auth=BearerAuth(self.token))
         content = response.json()
         for assignment in content:
 
@@ -113,6 +123,34 @@ class CanvasUtil:
                 return str(assignment["id"])
 
         raise Exception("ERROR: No matching assignment found!")
+
+    def get_assignment_by_id(self, course_id: str, assignment_id: int) -> str:
+        """
+        Get the id of the first assignment with a name that matches the input
+        """
+        response = requests.get(f"{self.canvas_api_url}/courses/{course_id}/assignments/{assignment_id}?include=items&per_page=100", auth=BearerAuth(self.token))
+        content = response.json()
+        if content['id'] == assignment_id:
+            print(f"| Found assignment: {content['name']}")
+            return str(content['id'])
+
+        raise Exception("ERROR: No matching assignment found!")
+
+    def get_assignment_list(self, course_id: str) -> dict:
+        """
+        Get the list of assignments for the specified course id
+        """
+        response = requests.get(f"{self.canvas_api_url}/courses/{course_id}/assignments?include=items&per_page=100", auth=BearerAuth(self.token))
+        content = response.json()
+        assignment_list = {}
+        for assignment in content:
+            #print(f"| Found assignment: {assignment['name']},{assignment['id']}")
+            assignment_list[assignment['name']] = assignment['id']
+
+        if len(assignment_list) == 0:
+            raise Exception("ERROR: No assignments found!")
+
+        return assignment_list
 
     def get_student_ids_by_section(self, course_id: str, section_id: str, results: dict):
         """
@@ -199,9 +237,10 @@ class CanvasUtil:
                 # PROMPT WHEN OVERWRITING GRADES
                 if content["grade"] is not None:
                     print(f"{student_name}: grade not null!")
-                    print("Confirm grade replacement with 'Y'.")
-                    if input().lower() != 'y':
-                        sys.exit(0)
+                    # print("Confirm grade replacement with 'Y'.")
+                    # if input().lower() != 'y':
+                    #     sys.exit(0)
+                    print(f"replacing grade of {student_name}")
 
                 payload = {}
 
@@ -222,6 +261,21 @@ class CanvasUtil:
 
                 counter = counter + 1
                 print(f"{counter} student(s) graded.")
+    def process_and_upload_file(self, course_id: str, assignment_name: str, csv_path: str):
+        section_ids = self.get_section_ids(course_id)
+        user_ids = {}
+        for section in section_ids:
+            self.get_student_ids_by_section(course_id, section, user_ids)
+
+        try:
+            assignment_id = self.get_assignment_id_by_name(course_id, assignment_name)
+            students_from_file = self.populate_students_from_csv(csv_path)
+            rubric_id = self.get_rubric_id(course_id, assignment_id)
+            rubric_format = self.generate_rubric(course_id, rubric_id)
+            self.upload_grades(course_id, user_ids, assignment_id, students_from_file, rubric_format)
+        except:
+            return -1
+
 
 def env_setup():
     e = EnvWrapper()
@@ -285,6 +339,8 @@ def main():
     section_ids = canvas_util.get_section_ids(course_id)
     print(f"└─> {len(section_ids)} section(s) found")
 
+    #canvas_util.get_assignment_list(course_id)
+
     print("-=- Type some part of the title of your assignment - if it's \"Python Pitches\", type \"Pitches\" -=-")
     try:
         assignment_name = input()
@@ -294,6 +350,11 @@ def main():
         print("└─> exiting with error")
         exit(-1)
     print(f"└─> Found assignment ID: {assignment_id}")
+
+    # print("-=- Type the ID of your assignment. Found in Canvas URL after assignments/ -=-")
+    # assignment_id = canvas_util.get_assignment_by_id(course_id,assignment_id=4346021)
+    # print(f"└─> Found assignment ID: {assignment_id}")
+
 
     user_ids = {}
     for section in section_ids:

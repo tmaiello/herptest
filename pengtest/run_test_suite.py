@@ -49,7 +49,6 @@ def parse_arguments():
 
 def build_project(source_root, build_root, build_cfg, submission):
     result_error = None
-    print(os.getcwd())
     current_dir = os.getcwd()
 
     # If there is a not a specified build directory, fall back to the source directory instead.
@@ -64,7 +63,6 @@ def build_project(source_root, build_root, build_cfg, submission):
             os.makedirs(build_root)
         os.chdir(build_root)
 
-    print(os.getcwd())
     if build_cfg.vm.is_vm == True:
         staging_log, build_log = build_cfg.vm_inst.make_vm(submission)
 
@@ -94,7 +92,6 @@ def build_project(source_root, build_root, build_cfg, submission):
 
         except (subprocess.CalledProcessError, FileNotFoundError) as error:
             result_error = error
-    print("here")
     os.chdir(current_dir)
     return result_error
 
@@ -115,41 +112,15 @@ def run_suite_tests(framework, subject, proj_settings, submission):
 
             # Add the initial notes at the top
             data_set = [ [ "Number of tests: %d." % num_of_tests ], [] ]
-            data_set += [ [ 'Test No.', 'Score', 'Message', 'Desc.' ] ]
 
             # Run the tests that have been staged to the VM for the submission
             run_log = cfg.build.vm_inst.run_tests(submission)
 
-            # Run library then harness
-            tests = ["Library", "Harness"]
-            i = 0
-            total = 0
-            score = 0
-
-            with open(run_log, "r") as file:
-                for line in file:
-                    found = line.find("Correct: ")
-
-                    # If we find the correct line in the file
-                    if found != -1:
-                        # Substring of the correct value, stripping newline
-                        s = line[9 : len(line) - 1]
-
-                        # Split on score / total
-                        split = s.find("/")
-                        correct = int(s[:split])
-                        score += correct
-                        t = int(s[split + 1 :])
-                        total += t
-
-                        # Add the score for the current test to the data set
-                        data_set += [ [ tests[i], correct, '', '' ] ]
-                        i += 1
-            
-            data_set += [ [], ["Test Cases: %.2f (%.2f%%)" % (score, (score / total) * 100) ] ]
+            # Analyze the run.log for what to put in the csv
+            log_result, score = proj_settings.analyze_run_log(run_log)
 
             # Add to the results list.
-            data_set = [ ["Project %s" % display_name] ] + data_set
+            data_set = [ ["Project %s" % display_name] ] + data_set + log_result
             results.append((display_name, score, data_set))
     
     else:

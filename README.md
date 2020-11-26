@@ -1,4 +1,4 @@
-# HerpTest - The Python Instructional Test Suite System
+# PengTest - The Python Instructional Test Suite System
 
 ```
 Team Peng - CIS 4930 - Python Term Project
@@ -13,14 +13,15 @@ This test suite it built to facilitate testing of student projects by teachers a
 
 This package includes five primary tools:
 
-- `herptest.toolbox`, which contains standardized / cross-platform function calls (currently only library loading)
+- `pengtest.toolbox`, which contains standardized / cross-platform function calls (currently only library loading)
 - `elma`, a command line tool to extract student submissions: (E)xtract (LM)S (A)rchive. Support is limited to Canvas. 
-- `herp`, a command line tool to run a project test suite as specified by the user.
+- `peng`, a command line tool to run a project test suite as specified by the user.
 - `peng-gui`, a graphical interface built on top of the other command-line tools in this package.
 - `csv-upload`, a CLI tool to automatically push a well formatted CSV of student grades and comments to a specified assignment.
+- `peng-canvas`, a CLI tool to automatically push a test suite results summary CSV to a Canvas assignment. Also has the ability to pull submissions from a selected assignment.
 
 
-## HerpTest Toolbox (`herptest.toolbox`)
+## PengTest Toolbox (`pengtest.toolbox`)
 
 The toolbox includes the following helper functions, intended to be cross-platform:
 
@@ -47,11 +48,11 @@ accounting for common renaming schemes and potential student name collisions.
 usage: `elma [-h] FILENAME DESTINATION`
 
 
-## Running Unit Test Suite (`herp`)
+## Running Unit Test Suite (`peng`)
 
-The `herp` command will begin the running of unit tests of all target project. It can take the following arguments:
+The `peng` command will begin the running of unit tests of all target project. It can take the following arguments:
 
-usage: `herp [-h] [-V] [-q] [-d] [suite_path] [target_path]`
+usage: `peng [-h] [-V] [-q] [-d] [suite_path] [target_path]`
 
 positional arguments:
   suite_path     path of test suite to load (default: ./)
@@ -70,9 +71,9 @@ optional arguments:
 (currently limited to library loading / execution)
 
 
-Upon startup, the herp utility will optionally initialize the framework specified in the settings. This framework is
+Upon startup, the peng utility will optionally initialize the framework specified in the settings. This framework is
 only built and initialized once for all students; any items that must be rebuilt for each student should be handled on
-an per-subject (student) basis. The herp utility provides a mechanism to initialize and clean up at the framework,
+an per-subject (student) basis. The peng utility provides a mechanism to initialize and clean up at the framework,
 subject, and project level (where there is one framework used to test many subjects, and each subject has one or more
 projects that are tested individually.)
 
@@ -161,6 +162,9 @@ Runs the test identified by test_number and project_context, capturing the penal
 `runProjectPenalty(penalty_number, project_context)`
 Runs the penalty test identified by penalty_number and project_context, returning its value.
 
+`analyzeRunLog(location)`
+Analyzes the run.log returned from the VM, returning a string containing the values to add to the csv and the total score.
+
 ### Build Namespace
 The build namespace objects holds paths and build commands. It must provide the following interface:
 
@@ -195,7 +199,7 @@ Command to be used to compile the build (e.g., make or devenv). This is a list o
 followed by its arguments.
 
 
-## Building & Running Graphical Interface (`peng-gui`)
+## Building & Running Graphical Interface (peng-gui)
 
 To run the GUI from WSL2, VcXsrv should be running first.
 
@@ -203,18 +207,17 @@ Some additional OS packages may be required (especially on stock distributions o
 
 `sudo apt install libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xfixes0 libxcb-xinerama0`
 
-Additionally, qtmake may require the following:
-
-`wget https://download.qt.io/development_releases/prebuilt/libclang/libclang-release_60-linux-Rhel7.2-gcc5.3-x86_64-clazy.7z`
-`7z x ./libclang-release_60-linux-Rhel7.2-gcc5.3-x86_64-clazy.7z`
-`export LLVM_INSTALL_DIR=$PWD/libclang`
-
 ## Using The CSV Uploading Tool (csv-upload)
 
-To run from CLI after building herp, run `csv-upload` with optional flags `--help`, `--version`, and `--setupenv`
+To run from CLI after building peng, run `csv-upload` with optional flags `--help`, `--version`, and `--setupenv`
 
 Where `--setupenv` will run you through the installation process of importing your Canvas API Token.
 
+## Using The Push/Pull Tool (peng-canvas)
+
+To run from CLI after building peng, run `peng-canvas` with optional flags `--help`, and `--setupenv`
+
+Where `--setupenv` will run you through the installation process of importing your Canvas API Token.
 
 ## Building this Package
 
