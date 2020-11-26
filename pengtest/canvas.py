@@ -1,18 +1,22 @@
 import os
 from canvasapi import Canvas
 from csv import reader
-from canvasapi import assignment
 from dotenv import load_dotenv
 import requests, urllib.request
-from . import grade_csv_uploader
+import sys
+import argparse
+from pengtest.env_wrapper import EnvWrapper
 
 
 
 class CanvasWrapper:
-    def __init__(self, API_URL, env_path):
+    def __init__(self, API_URL, env_path, token_type):
         self.canv_url = API_URL
         load_dotenv(env_path)
-        self.canv_token = os.getenv("TOKEN")
+        if token_type == None:
+            self.canv_token = os.getenv("TOKEN")
+        else:
+            self.canv_token = os.getenv(token_type)
         self.canv = Canvas(API_URL, self.canv_token)
 
     def get_courses(self):
@@ -56,10 +60,16 @@ class CanvasWrapper:
 
 
     def push_grades(self, _course, assignment, path):
+        try:
+            results = self.get_results(path)
+        except:
+            print("| InputError: Your path does not lead to summary.csv.")
+            print("└─> exiting with error")
+            exit(-1)
         for assn in self.get_assignments(list(course.id for course in self.get_courses() if course.name == _course)[0]):
             if(assignment == assn.name):
                 for sub in assn.get_submissions():
-                    for res in self.get_results(path):
+                    for res in results:
                         if(str(sub.user_id) == res[1]):
                             print("Score of " + res[0] + ", ID: " + res[1] + " changed from " + str(sub.score) + " to " + str(float(res[2])) + ".")
                             sub.edit(
@@ -67,15 +77,115 @@ class CanvasWrapper:
                                     'posted_grade' : float(res[2])
                                 }
                             )
+                    
+
+def env_setup():
+    e = EnvWrapper()
+    print("-=- Welcome to the Canvas API Key setup tool, you will be prompted to enter your Canvas key and your Canvas Beta key -=-")
+    print("-=- If you only wish to use one of these keys, you can leave the other blank / submit any text. To reinstall, run this command again -=-")
+    e.populate_env()
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='A program to automatically push grades or pull submissions to a Canvas assignment')
+    parser.add_help = True
+    parser.add_argument('-S', '-s', '--setupenv', action='store_true', help='Run the setup wizard for Canvas API Key Environment Variables')
+    config = parser.parse_args(sys.argv[1:])
+    config.logformat = "%(message)s"
+    return config
 
 def main():
-    url = "https://ufl.instructure.com" #input("Enter canvas URL here: ")
-    path = "canvas.env" #input("Enter env path: ")
+    PRODUCTION_URL = "https://ufl.instructure.com" 
+    BETA_URL = "https://ufl.beta.instructure.com"
+    DOT_ENV_PATH = "canvas.env" 
+    PRODUCTION_TOKEN_TYPE = "TOKEN"
+    BETA_TOKEN_TYPE = "BETA_TOKEN"
 
-    canvas = CanvasWrapper(url, path)
+    arg_config = parse_arguments()
+    if arg_config.setupenv == True:
+        env_setup()
+    
+    canvas_type = input("Would you like to upload to Live Canvas or Canvas Beta? {Choices: Live, Beta} ")
+    if canvas_type == "Live" or canvas_type == "live":
+        canvas = CanvasWrapper(PRODUCTION_URL,DOT_ENV_PATH,PRODUCTION_TOKEN_TYPE)
+        print("Starting CSV Uploader With Parameters -> API_URL:",PRODUCTION_URL,"-> DOT_ENV: ",DOT_ENV_PATH,"-> TOKEN_TYPE:",PRODUCTION_TOKEN_TYPE)
+    elif canvas_type == "Beta" or canvas_type == "beta":
+        canvas = CanvasWrapper(BETA_URL,DOT_ENV_PATH,BETA_TOKEN_TYPE)
+        print("Starting CSV Uploader With Parameters -> API_URL:",BETA_URL,"-> DOT_ENV:",DOT_ENV_PATH,"-> TOKEN_TYPE:",BETA_TOKEN_TYPE)
+    else:
+        print("| InputError: Your input does not match one of the chosen types.")
+        print("└─> exiting with error")
+        exit(-1)
 
+    try:
+        courses = canvas.get_courses()
+    except:
+        print("| Canvas Util Object failed to be created. Is your API key valid?")
+        print("| Hint: try using --setupenv to set up your environment variables.")
+        print("└─> exiting with error")
+        exit(-1)
+
+    print("-=- Listing all courses for which you have role: Teacher -=-")
+    temp_count = 0
+    for course in courses:
+        print(f"{temp_count}. {course.name}")
+        temp_count = temp_count + 1
+
+    print("-=- Which course are you choosing? {Enter Number, 0 indexed} -=-")
+    index_choice = input()
+    try:
+        course_name = courses[int(index_choice)].name
+    except ValueError:
+        print("| ValueError: Your choice could not be converted from str -> int")
+        print("└─> exiting with error")
+        exit(-1)
+
+    print("-=- Listing all assignments for the course: " + course_name + " -=-")
+    assignments = canvas.get_assignments(list(course.id for course in courses if course.name == course_name)[0])
+    temp_count = 0
+    for assn in assignments:
+        print(f"{temp_count}. {assn.name}")
+        temp_count = temp_count + 1
+
+    print("-=- Which assignment are you choosing? {Enter Number, 0 indexed} -=-")
+    index_choice = input()
+    try:
+        assn_name = assignments[int(index_choice)].name
+    except ValueError:
+        print("| ValueError: Your choice could not be converted from str -> int")
+        print("└─> exiting with error")
+        exit(-1)
+
+    print("-=- Would you like to push grades or pull submissions for assignment: " + assn_name + " -=-")
+    temp_count = 0
+    choices = ["Push", "Pull"]
+    for choice in choices:
+        print(f"{temp_count}. {choice}")
+        temp_count = temp_count + 1
+
+    index_choice = input()
+    try:
+        choice = choices[int(index_choice)]
+    except ValueError:
+        print("| ValueError: Your choice could not be converted from str -> int")
+        print("└─> exiting with error")
+        exit(-1)
+    
+    if choice == "Push":
+        print("-=- Enter the relative path for your summary.csv file in your Test Suite's 'Results' folder {If on WSL, remember to use mounted drives and linux formatted paths} -=-")
+        submission_path = input()
+        print("-=- Pushing grades to Canvas -=-")
+        canvas.push_grades(course_name, assn_name, submission_path)
+        print("-=- Grades pushed successfully. Shutting down -=-")
+
+    elif choice == "Pull":
+        print("-=- Fetching assignment download link w/ manual download mode enabled... -=-")
+        dl_link = canvas.get_download_link(course_name, assn_name)
+        print("-=- Open the download link in your browser to download the assignment submissions -=-")
+        print(dl_link)
+        print("-=- Shutting down -=-")
     #print(canvas.download_submissions("Sandbox: Blanchard", "PengTest", './../../Test Suite/submissions.zip'))
-    #canvas.push_grades("Sandbox: Blanchard", "PengTest", "../../Test Suite/Results")
+    #canvas.push_grades("Sandbox: Blanchard", "PengTest", "../../Test Suite/Results/summary.csv")
 
 if __name__ == "__main__":
     main()
