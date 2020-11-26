@@ -36,7 +36,6 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout()
         self.layout.setContentsMargins(5,5,5,5)
         self.createMenuBar()
-        self.setActiveLanguage("Python")
         
         self.createTestCaseContainer()
         
@@ -93,16 +92,8 @@ class TestSuiteCreator(QtWidgets.QWidget):
     def createMenuBar(self):
         self.menuBar = QtWidgets.QMenuBar()
         self.fileMenu = self.menuBar.addMenu("File")
-
-        self.fileMenuNew = self.fileMenu.addMenu("New Test Suite")
-        self.fileMenuNewCPP = self.fileMenuNew.addAction("C++")
-        self.fileMenuNewCPP.triggered.connect(lambda: self.newTestSuite("C++"))
-        self.fileMenuNewJava = self.fileMenuNew.addAction("Java")
-        self.fileMenuNewJava.triggered.connect(lambda: self.newTestSuite("Java"))
-        self.fileMenuNewPython = self.fileMenuNew.addAction("Python")
-        self.fileMenuNewPython.triggered.connect(lambda: self.newTestSuite("Python"))
-
-
+        self.fileMenuNew = self.fileMenu.addAction("New Test Suite")
+        self.fileMenuNew.triggered.connect(lambda: self.newTestSuite())
         self.fileMenuOpen = self.fileMenu.addAction("Open")
         self.fileMenuOpen.setShortcuts(QtGui.QKeySequence.Open)
         self.fileMenuOpen.triggered.connect(lambda: self.openTestSuite())
@@ -112,20 +103,6 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.fileMenuSaveAs = self.fileMenu.addAction("Save As")
         self.fileMenuSaveAs.setShortcut(QtGui.QKeySequence(QtCore.Qt.CTRL + QtCore.Qt.SHIFT + QtCore.Qt.Key_S,))
         self.fileMenuSaveAs.triggered.connect(lambda: self.saveTestSuite(saveAs=True))
-        self.fileMenuClose = self.fileMenu.addAction("Close")
-        self.fileMenuClose.setShortcuts(QtGui.QKeySequence.Close)
-        self.fileMenuClose.triggered.connect(lambda: self.closeTestSuite())
-
-        self.editMenu = self.menuBar.addMenu("Edit")
-        self.editMenuCut = self.editMenu.addAction("Cut")
-        self.editMenuCut.setShortcuts(QtGui.QKeySequence.Cut)
-        self.editMenuCut.triggered.connect(lambda: self.handleEditAction("Cut"))
-        self.editMenuCopy = self.editMenu.addAction("Copy")
-        self.editMenuCopy.setShortcuts(QtGui.QKeySequence.Copy)
-        self.editMenuCopy.triggered.connect(lambda: self.handleEditAction("Copy"))
-        self.editMenuPaste = self.editMenu.addAction("Paste")
-        self.editMenuPaste.setShortcuts(QtGui.QKeySequence.Paste)
-        self.editMenuPaste.triggered.connect(lambda: self.handleEditAction("Paste"))
 
         self.testCaseMenu = self.menuBar.addMenu("Test Cases")
         self.testCaseAdd = self.testCaseMenu.addAction("Add Test Case")
@@ -134,19 +111,6 @@ class TestSuiteCreator(QtWidgets.QWidget):
         self.testCaseRename.triggered.connect(lambda: self.renameTestCase(self.testCaseStack.currentIndex()))
         self.testCaseDelete = self.testCaseMenu.addAction("Delete Test Case")
         self.testCaseDelete.triggered.connect(lambda: self.removeTestCase(self.testCaseStack.currentIndex()))
-
-        self.languageMenu = self.menuBar.addMenu("Language")
-        self.languageMenuGroup = QtWidgets.QActionGroup(self.languageMenu)
-
-        self.languageMenuCPP = self.languageMenuGroup.addAction("C++")
-        self.languageMenuCPP.setCheckable(True)
-        self.languageMenu.addAction(self.languageMenuCPP)
-        self.languageMenuJava = self.languageMenuGroup.addAction("Java")
-        self.languageMenuJava.setCheckable(True)
-        self.languageMenu.addAction(self.languageMenuJava)
-        self.languageMenuPython = self.languageMenuGroup.addAction("Python")
-        self.languageMenuPython.setCheckable(True)
-        self.languageMenu.addAction(self.languageMenuPython)
       
         self.layout.addWidget(self.menuBar)
         self.layout.setAlignment(self.menuBar, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
@@ -239,7 +203,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
                 self.solutionFile = newSolutionFile
                 os.chdir(testSuiteDir)
                 self.writeTestSuiteJson()
-                folderNameTuple = ("Build", "Projects", "Results", "Settings", "Source", "Build/Framework", "Build/Subject", "Source/Framework", "Source/Subject")
+                folderNameTuple = ("Build", "Projects", "Results", "Settings", "Source", "Build/Framework", "Build/Subject", "Source/Framework", "Source/Subject", "Projects/Empty", "Projects/Solution")
                 for folderName in folderNameTuple:
                     try:
                         os.mkdir(os.path.join(os.getcwd(), folderName))
@@ -292,9 +256,12 @@ class TestSuiteCreator(QtWidgets.QWidget):
                 shutil.copy(os.path.join(template_folder, "config_template.py"), os.path.join(os.getcwd(), "config.py"))
                 shutil.copy(self.solutionFile, os.path.join(os.getcwd(), "Source/Framework"))
                 shutil.copy(self.solutionFile, os.path.join(os.getcwd(), "Build/Framework"))
+                shutil.copy(self.solutionFile, os.path.join(os.getcwd(), "Projects/Solution"))
                 with open(os.path.join(os.getcwd(), "Source", "Subject", os.path.basename(self.solutionFile)), 'w') as file:
                     file.write("pass")
                 with open(os.path.join(os.getcwd(), "Build", "Subject", os.path.basename(self.solutionFile)), 'w') as file:
+                    file.write("pass")
+                with open(os.path.join(os.getcwd(), "Projects", "Empty", os.path.basename(self.solutionFile)), 'w') as file:
                     file.write("pass")
 
                 self.updateBreadcrumb()
@@ -317,7 +284,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
             testCase['start_token'] = self.testCaseStack.widget(index).startToken
             testCase['end_token'] = self.testCaseStack.widget(index).endToken
             data['test_cases'].append(testCase)
-        #if a save path has not already been designated (user has not previously saved test suite), save path defaults to cwd (TODO: change to put in folder once entire test suite is generated?)
+        #if a save path has not already been designated (user has not previously saved test suite), save path defaults to cwd
         if not self.savePath:
             newFileName = os.path.basename(os.path.splitext(self.solutionFile)[0]) + "_test_cases.json"
             self.savePath = os.path.join(os.getcwd(), newFileName)
@@ -341,7 +308,6 @@ class TestSuiteCreator(QtWidgets.QWidget):
             self.testCasePoints.setDisabled(True)
             self.matchTypeComboBox.setDisabled(True)
         
-
     def changeTestCase(self, index):
         if index == self.testCaseComboBox.count()-1:
             self.addTestCase()
@@ -363,7 +329,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
             self.updateTotalPoints()
             self.checkEnableWidgets()
         else:
-            #if user cancels, test case switches to last test case -> TODO preserve previous test case instead of defaulting to last?
+            #if user cancels, test case switches to last test case
             if self.testCaseStack.count() > 1:
                 self.changeTestCase(self.testCaseStack.count()-2)
             self.checkEnableWidgets()
@@ -371,28 +337,33 @@ class TestSuiteCreator(QtWidgets.QWidget):
 
     def removeTestCase(self, index):
 
-        #TODO add dialog before removing test case for safety
-
         # prevents deleting Add Test Case item
         if self.testCaseComboBox.count() == 1:
             return
 
-        target = self.testCaseStack.widget(index)
-        self.testCaseStack.removeWidget(target)
-        self.testCaseComboBox.removeItem(index)
-        self.updateTotalPoints()
+        buttonClicked = QtWidgets.QMessageBox.warning(self, "Delete Test Case", "Are you sure you want to delete this test case?", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Cancel)
+        
+        if buttonClicked == QtWidgets.QMessageBox.Ok:
 
-        if self.testCaseComboBox.count() > 1:
-            if self.testCaseComboBox.currentIndex() == self.testCaseComboBox.count()-1:
-                self.changeTestCase(self.testCaseComboBox.currentIndex()-1)
+            target = self.testCaseStack.widget(index)
+            self.testCaseStack.removeWidget(target)
+            self.testCaseComboBox.removeItem(index)
+            self.updateTotalPoints()
 
-            if self.testCaseStack.count() == 2:
-                #we just deleted the penultimate real test case, make sure that the remaining one is selected
-                self.changeTestCase(0)
-        self.checkEnableWidgets()
+            if self.testCaseComboBox.count() > 1:
+                if self.testCaseComboBox.currentIndex() == self.testCaseComboBox.count()-1:
+                    self.changeTestCase(self.testCaseComboBox.currentIndex()-1)
+
+                if self.testCaseStack.count() == 2:
+                    #we just deleted the penultimate real test case, make sure that the remaining one is selected
+                    self.changeTestCase(0)
+            self.checkEnableWidgets()
 
 
     def renameTestCase(self, index):
+
+        if self.testCaseStack.currentIndex() == self.testCaseStack.count() - 1:
+            return
 
         dialog, ok = QtWidgets.QInputDialog().getText(self, "Rename Test Case", "Enter new name:", QtWidgets.QLineEdit.Normal) 
 
@@ -400,24 +371,32 @@ class TestSuiteCreator(QtWidgets.QWidget):
             self.testCaseComboBox.setItemText(index, dialog)
             self.testCaseStack.widget(index).name = dialog
 
-    def newTestSuite(self, language):
-        print("Creating new test suite for " + language)
-        #TODO: linkage
+    def newTestSuite(self):
+        if self.testCaseComboBox.count() == 1:
+            return
 
-    def setActiveLanguage(self, language):
-        if language == "Java":
-            self.languageMenuJava.setChecked(True)
-        elif language == "Python":
-            self.languageMenuPython.setChecked(True)
-        elif language == "C++":
-            self.languageMenuCPP.setChecked(True)
-
-    def handleEditAction(self, action):
-        print("handle action for:" + action)
-        #TODO: add implementation for cut, copy, paste
+        buttonClicked = QtWidgets.QMessageBox.warning(self, "Delete Test Case", "Do you want to save your changes?", QtWidgets.QMessageBox.Discard | QtWidgets.QMessageBox.Cancel | QtWidgets.QMessageBox.Save)
+        if buttonClicked == QtWidgets.QMessageBox.Cancel:
+            return
+        elif buttonClicked ==  QtWidgets.QMessageBox.Save:
+            if(self.saveTestSuite() == -1):
+                return
+            while self.testCaseComboBox.count() > 1:
+                target = self.testCaseStack.widget(0)
+                self.testCaseStack.removeWidget(target)
+                self.testCaseComboBox.removeItem(0)
+        else:  
+            while self.testCaseComboBox.count() > 1:
+                target = self.testCaseStack.widget(0)
+                self.testCaseStack.removeWidget(target)
+                self.testCaseComboBox.removeItem(0)
+            
+        self.savePath = None
+        self.checkEnableWidgets()
+        self.updateTotalPoints()
+        self.updateBreadcrumb()
 
     def openTestSuite(self):
-        #TODO prompt user to save before opening new test suite
         testCasesPath, _ = QtWidgets.QFileDialog.getOpenFileName(self, caption="Select Test Cases File", filter="JSON Files (*.json)")
         if testCasesPath:
             #remove currently displayed test cases 
@@ -444,14 +423,13 @@ class TestSuiteCreator(QtWidgets.QWidget):
                     self.testCaseStack.insertWidget(self.testCaseStack.count()-1, self.TestCase(testCaseTitle, points, matchType, startToken, endToken))
                     self.testCaseStack.widget(self.testCaseStack.count()-2).inputText.setPlainText("\n".join(inputList))
                     self.testCaseComboBox.insertItem(self.testCaseComboBox.count()-1, testCaseTitle)
-
-        self.changeTestCase(0)
-        self.checkEnableWidgets()
-        self.updateBreadcrumb()
+            self.changeTestCase(0)
+            self.checkEnableWidgets()
+            self.updateTotalPoints()
+            self.updateBreadcrumb()
 
     def saveTestSuite(self, saveAs=False):
         if(self.testCaseStack.count() == 1):
-            #TODO display error message
             return
         #if user clicks saveAs or if the user has not saved before
         if not self.savePath or saveAs:
@@ -462,13 +440,5 @@ class TestSuiteCreator(QtWidgets.QWidget):
                 self.savePath = newSavePath
                 self.writeTestSuiteJson()
                 self.updateBreadcrumb()
-
         else:
-            #TODO add feedback in breadcrumb
             self.writeTestSuiteJson()
-
-
-    def closeTestSuite(self):
-        print("close test suite")
-        #TODO implement closing test suite and prompting to save if changes have been made
-        self.updateBreadcrumb()
