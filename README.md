@@ -18,6 +18,7 @@ This package includes five primary tools:
 - `peng`, a command line tool to run a project test suite as specified by the user.
 - `peng-gui`, a graphical interface built on top of the other command-line tools in this package.
 - `csv-upload`, a CLI tool to automatically push a well formatted CSV of student grades and comments to a specified assignment.
+- `peng-canvas`, a CLI tool to automatically push a test suite results summary CSV to a Canvas assignment. Also has the ability to pull submissions from a selected assignment.
 
 
 ## PengTest Toolbox (`pengtest.toolbox`)
@@ -198,19 +199,25 @@ Command to be used to compile the build (e.g., make or devenv). This is a list o
 followed by its arguments.
 
 
-## Building & Running Graphical Interface (`peng-gui`)
+## Building & Running Graphical Interface (peng-gui)
 
 To run the GUI from WSL2, VcXsrv should be running first.
 
 Some additional OS packages may be required (especially on stock distributions of WSL2):
 
 `sudo apt install libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xfixes0 libxcb-xinerama0`
+
 ## Using The CSV Uploading Tool (csv-upload)
 
 To run from CLI after building peng, run `csv-upload` with optional flags `--help`, `--version`, and `--setupenv`
 
 Where `--setupenv` will run you through the installation process of importing your Canvas API Token.
 
+## Using The Push/Pull Tool (peng-canvas)
+
+To run from CLI after building peng, run `peng-canvas` with optional flags `--help`, and `--setupenv`
+
+Where `--setupenv` will run you through the installation process of importing your Canvas API Token.
 
 ## Building this Package
 

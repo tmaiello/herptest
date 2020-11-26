@@ -10,28 +10,25 @@ from pengtest.env_wrapper import EnvWrapper
 
 
 class CanvasWrapper:
-    def __init__(self, API_URL, env_path, token_type=None):
+    def __init__(self, API_URL, env_path, token_type="TOKEN"): #Initializes CanvasWrapper object which stores an authenticated CanvasAPI Canvas object
         self.canv_url = API_URL
         load_dotenv(env_path)
-        if token_type == None:
-            self.canv_token = os.getenv("TOKEN")
-        else:
-            self.canv_token = os.getenv(token_type)
+        self.canv_token = os.getenv(token_type)
         self.canv = Canvas(API_URL, self.canv_token)
 
-    def get_courses(self):
+    def get_courses(self): #Get all courses with enrollment type of teacher
         return self.canv.get_courses(enrollment_type='teacher')
     
-    def get_assignments(self, course):
+    def get_assignments(self, course): #Get all assignments in a course using the passed in course ID
         return self.canv.get_course(course).get_assignments()
 
-    def get_students(self, course):
+    def get_students(self, course): #Get all students in a course using the passed in course ID
         students = []
         for student in self.canv.get_course(course).get_users(enrollment_type='student'):
             students.append(student.name.split(' ') + [student.id])
         return students
 
-    def get_results(self, path):
+    def get_results(self, path): #Get the results CSV in the format [['studentname', student_ID, grade]]
         results = []
         with open(path, 'r') as _summary:
             csv_reader = reader(_summary)
@@ -42,12 +39,12 @@ class CanvasWrapper:
         return results
 
 
-    def get_download_link(self, _course, assignment):
+    def get_download_link(self, _course, assignment): #Get submissions.zip download link from a given course assignment using the passed in course name and assignment name
         for assn in self.get_assignments(list(course.id for course in self.get_courses() if course.name == _course)[0]):
             if(assignment == assn.name):
                 return assn.submissions_download_url
 
-    def download_submissions(self, _course, assignment, path):
+    def download_submissions(self, _course, assignment, path): #Automatically download submissions.zip from a course assignment (course name, assignment name) to the given path
         for assn in self.get_assignments(list(course.id for course in self.get_courses() if course.name == _course)[0]):
             if(assignment == assn.name):
                 print(assn.submissions_download_url)
@@ -59,7 +56,7 @@ class CanvasWrapper:
                 urllib.request.urlretrieve(assn.submissions_download_url, path)
 
 
-    def push_grades(self, _course, assignment, path):
+    def push_grades(self, _course, assignment, path): #Push grades to Canvas assignment (course name, assignment name) using the summary.csv from the given path
         try:
             results = self.get_results(path)
         except:
@@ -95,8 +92,9 @@ def parse_arguments():
     return config
 
 def main():
-    PRODUCTION_URL = "https://ufl.instructure.com" 
-    BETA_URL = "https://ufl.beta.instructure.com"
+    # consts that can be swapped out if changing use case.
+    PRODUCTION_URL = "https://ufl.instructure.com" # Canvas Production is live Canvas where changes will be applied to students.
+    BETA_URL = "https://ufl.beta.instructure.com" # Canvas Beta is for testing changes that won't apply to courses yet.
     DOT_ENV_PATH = "canvas.env" 
     PRODUCTION_TOKEN_TYPE = "TOKEN"
     BETA_TOKEN_TYPE = "BETA_TOKEN"
@@ -116,6 +114,8 @@ def main():
         print("| InputError: Your input does not match one of the chosen types.")
         print("└─> exiting with error")
         exit(-1)
+
+    # CanvasWrapper object, driver object for functionality, if you want beta or production, a different .env path, or token, enter here into constructor.
 
     try:
         courses = canvas.get_courses()
@@ -184,8 +184,6 @@ def main():
         print("-=- Open the download link in your browser to download the assignment submissions -=-")
         print(dl_link)
         print("-=- Shutting down -=-")
-    #print(canvas.download_submissions("Sandbox: Blanchard", "PengTest", './../../Test Suite/submissions.zip'))
-    #canvas.push_grades("Sandbox: Blanchard", "PengTest", "../../Test Suite/Results/summary.csv")
 
 if __name__ == "__main__":
     main()
