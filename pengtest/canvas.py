@@ -10,7 +10,7 @@ from pengtest.env_wrapper import EnvWrapper
 
 
 class CanvasWrapper:
-    def __init__(self, API_URL, env_path, token_type):
+    def __init__(self, API_URL, env_path, token_type=None):
         self.canv_url = API_URL
         load_dotenv(env_path)
         if token_type == None:
