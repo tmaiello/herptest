@@ -1,5 +1,5 @@
 from PySide2 import QtCore, QtWidgets, QtGui
-import os, subprocess, json
+import os, subprocess, json, shutil
 
 class TestSuiteCreator(QtWidgets.QWidget):
 
@@ -234,11 +234,70 @@ class TestSuiteCreator(QtWidgets.QWidget):
         newSolutionFile, _ = QtWidgets.QFileDialog.getOpenFileName(self, caption="Select Solution Code", filter="Python Files (*.py)")
 
         if newSolutionFile:
-            self.solutionFile = newSolutionFile
-            self.writeTestSuiteJson()
-            #TODO query for test suite folder
-            #TODO generate tests.py, project.py, config.py(?)
-            self.updateBreadcrumb()
+            testSuiteDir = QtWidgets.QFileDialog.getExistingDirectory(self, caption="Select Test Suite Save Path", options=QtWidgets.QFileDialog.ShowDirsOnly)
+            if testSuiteDir:
+                self.solutionFile = newSolutionFile
+                os.chdir(testSuiteDir)
+                self.writeTestSuiteJson()
+                folderNameTuple = ("Build", "Projects", "Results", "Settings", "Source", "Build/Framework", "Build/Subject", "Source/Framework", "Source/Subject")
+                for folderName in folderNameTuple:
+                    try:
+                        os.mkdir(os.path.join(os.getcwd(), folderName))
+                    except OSError: #error may be raised if directory already exists
+                        continue
+                
+                template_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "test_suite_templates")
+
+                with open(os.path.join(template_folder, "tests_template.py"), 'r') as file:
+                    projectTemplateLines = file.readlines()
+                    testCases = {}
+                    testCases[os.path.basename(self.solutionFile)] = []
+                    for index in range(0, self.testCaseStack.count() - 1):
+                        if self.testCaseStack.widget(index).matchType == 2:
+                            currMatchType = -1
+                        else:
+                            currMatchType = self.testCaseStack.widget(index).matchType
+
+                        testCase = (
+                            self.testCaseStack.widget(index).inputText.toPlainText().strip().split("\n"),
+                            self.testCaseStack.widget(index).name,
+                            currMatchType, 
+                            self.testCaseStack.widget(index).startToken,
+                            self.testCaseStack.widget(index).endToken
+                        )
+                        testCases[os.path.basename(self.solutionFile)].append(testCase)
+                    projectTemplateLines[21] = "test_cases = " + str(testCases)+ '\n'
+
+                with open(os.path.join(os.getcwd(), "Settings", "tests.py"), 'w') as file:
+                    file.writelines(projectTemplateLines)
+                
+                with open(os.path.join(template_folder, "project_template.py"), 'r') as file:
+                    testsTemplateLines = file.readlines()
+
+                    total = 0.0
+                    for index in range(0, self.testCaseStack.count()-1):
+                        total += self.testCaseStack.widget(index).points
+
+                    projects = [(
+                        os.path.basename(os.path.splitext(self.solutionFile)[0]),
+                        os.path.basename(self.solutionFile),
+                        total
+                    )]
+
+                    testsTemplateLines[22] = "projects = " + str(projects) + '\n'
+
+                with open(os.path.join(os.getcwd(), "Settings", "project.py"), 'w') as file:
+                    file.writelines(testsTemplateLines)
+                    
+                shutil.copy(os.path.join(template_folder, "config_template.py"), os.path.join(os.getcwd(), "config.py"))
+                shutil.copy(self.solutionFile, os.path.join(os.getcwd(), "Source/Framework"))
+                shutil.copy(self.solutionFile, os.path.join(os.getcwd(), "Build/Framework"))
+                with open(os.path.join(os.getcwd(), "Source", "Subject", os.path.basename(self.solutionFile)), 'w') as file:
+                    file.write("pass")
+                with open(os.path.join(os.getcwd(), "Build", "Subject", os.path.basename(self.solutionFile)), 'w') as file:
+                    file.write("pass")
+
+                self.updateBreadcrumb()
 
     def writeTestSuiteJson(self):
         data = {}
@@ -249,7 +308,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
         for index in range(0, self.testCaseStack.count()-1):
             testCase = {}
             testCase['test_case_title'] = self.testCaseStack.widget(index).name
-            testCase['input_list'] = self.testCaseStack.widget(index).inputText.toPlainText().split("\n")
+            testCase['input_list'] = self.testCaseStack.widget(index).inputText.toPlainText().strip().split("\n")
             testCase['points'] = self.testCaseStack.widget(index).points
             if self.testCaseStack.widget(index).matchType == 2:
                 testCase['match_type'] = -1
@@ -258,9 +317,9 @@ class TestSuiteCreator(QtWidgets.QWidget):
             testCase['start_token'] = self.testCaseStack.widget(index).startToken
             testCase['end_token'] = self.testCaseStack.widget(index).endToken
             data['test_cases'].append(testCase)
-        #if a save path has not already been designated (user has not saved test suite), save path defaults to cwd (TODO: change to put in folder once entire test suite is generated?)
+        #if a save path has not already been designated (user has not previously saved test suite), save path defaults to cwd (TODO: change to put in folder once entire test suite is generated?)
         if not self.savePath:
-            newFileName = os.path.basename(os.path.splitext(self.solutionFile)[0]) + "_test_suite.json"
+            newFileName = os.path.basename(os.path.splitext(self.solutionFile)[0]) + "_test_cases.json"
             self.savePath = os.path.join(os.getcwd(), newFileName)
         with open(self.savePath, 'w') as outfile: 
             json.dump(data, outfile)
@@ -293,6 +352,7 @@ class TestSuiteCreator(QtWidgets.QWidget):
             self.matchTypeComboBox.setCurrentIndex(self.testCaseStack.widget(index).matchType)
             self.startToken.setValue(self.testCaseStack.widget(index).startToken)
             self.endToken.setValue(self.testCaseStack.widget(index).endToken)
+            self.checkEnableWidgets()
 
     def addTestCase(self):
         testCaseTitle, ok = QtWidgets.QInputDialog().getText(self, "Test Case Name", "Enter test case name:", QtWidgets.QLineEdit.Normal) 

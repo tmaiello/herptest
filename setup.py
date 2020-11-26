@@ -22,7 +22,7 @@ setup(
         'pyside2',
         'canvasapi'
     ],
-    package_data={'herptest': ['herptest/*.png']},
+    package_data={'herptest': ['herptest/*.png', 'test_suite_templates/*.py']},
     include_package_data=True,
 
     entry_points =
