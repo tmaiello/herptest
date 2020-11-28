@@ -24,7 +24,8 @@ setup(
         'canvasapi',
         'mosspy'
     ],
-    package_data={'pengtest': ['pengtest/*.png']},
+    package_data={'pengtest': ['pengtest/*.png', 'test_suite_templates/*.py']},
+
     include_package_data=True,
 
     entry_points =
