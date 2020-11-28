@@ -4,6 +4,8 @@ class EnvWrapper:
     def __init__(self):
         pass
 
+
+    # modularized input function for env wrapper if needed for implemenation
     def input_func(self):
         self.input_checker = input()
         try:
@@ -11,6 +13,7 @@ class EnvWrapper:
         except:
             raise ValueError("Key of incorrect type.")
         return self.input_checker
+
 
     # Populates the keys into canvas.env permanently
     def populate_env(self):
@@ -21,6 +24,7 @@ class EnvWrapper:
             self.beta_token = "BETA_TOKEN="+str(self.input_func()+"\n")
             f.write(self.prod_token),print("Production Token Stored.")
             f.write(self.beta_token),print("Beta Token Stored.")
+
 
     # Brings canvas keys into virtual env during runtime
     def read_env(self):

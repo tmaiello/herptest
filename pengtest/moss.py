@@ -2,6 +2,7 @@ import mosspy
 import os
 from dotenv import load_dotenv
 
+# MossUtil class to encapsulate the moss functionality in objects
 class MossUtil:
     def __init__(self, dotenv_path):
         load_dotenv(dotenv_path)  # load token from .env file
@@ -11,12 +12,15 @@ class MossUtil:
 
 
     # Returns mosspy object bound to userid and language
+
     # Language choices:
     # language_list = ["c", "cc", "java", "ml", "pascal", "ada",
     # "lisp", "scheme", "haskell", "fortran",
     # "ascii", "vhdl", "perl", "matlab", "python",
     # "mips", "prolog", "spice", "vb", "csharp",
     # "modula2", "a8086", "javascript", "plsql", "verilog"]
+
+    
     def init_moss(self, language):
         language_list = ["c", "cc", "java", "ml", "pascal", "ada",
         "lisp", "scheme", "haskell", "fortran",

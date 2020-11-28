@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 # Version Number for Release
 VERSION_NUM = '0.9.9.4'
 
-
+# Environment handling for moss env setup. Uses MossEnvWrapper
 def env_setup():
     m = MossEnvWrapper()
     print("-=- Welcome to the Moss Key setup tool, you will be prompted to enter your Moss key -=-")
@@ -30,23 +30,29 @@ def parse_arguments():
     return config
 
 
+# Driver function for run_moss, invokes necessary commands to run moss on submissions
 def main():
     print("-=- Running Stanford Moss CLI tool -=-")
 
+    # parse arguments
     arg_config = parse_arguments()
     if arg_config.setupenv == True:
         env_setup()
     
+    # create moss object
     moss_obj = MossUtil("moss.env")
 
+    # check args for necessary (required) arguments
     if arg_config.language != None:
         moss_obj.init_moss("python")
     else:
         raise ValueError("No Language Provided")
 
+    # checks args for basefiles and submissions locations
     if arg_config.basefiles != None and arg_config.submissions != None:
         moss_obj.add_files("basefiles","submissions")
     
+    # sends files and saves logs locally from moss
     moss_obj.send_files()
     moss_obj.save_files()
 
