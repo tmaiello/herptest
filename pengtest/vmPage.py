@@ -23,7 +23,7 @@ build.subject_src = \"Source/Subject\"\n\
 build.subject_bin = \"Build/Subject\"\n\
 build.framework_src = \"Source/Framework\"\n\
 build.framework_bin = \"Build/Framework\"\n\
-build.prep_cmd = [\"xcopy\", \"$source_dir\\\", \"$build_dir\"]\n\
+build.prep_cmd = [\"xcopy\", \"$source_dir\\\\\", \"$build_dir\"]\n\
 build.compile_cmd = []\n"
 
 DEFAULT_CONFIG_END = "project = toolbox.load_module(path.join(settings_path, \"project.py\"))"
