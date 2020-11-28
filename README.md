@@ -19,6 +19,7 @@ This package includes five primary tools:
 - `peng-gui`, a graphical interface built on top of the other command-line tools in this package.
 - `csv-upload`, a CLI tool to automatically push a well formatted CSV of student grades and comments to a specified assignment.
 - `peng-canvas`, a CLI tool to automatically push a test suite results summary CSV to a Canvas assignment. Also has the ability to pull submissions from a selected assignment.
+- `moss`, a CLI tool to run Stanford Moss similarity checking on student submissions
 
 
 ## PengTest Toolbox (`pengtest.toolbox`)
@@ -216,6 +217,14 @@ Where `--setupenv` will run you through the installation process of importing yo
 ## Using The Push/Pull Tool (peng-canvas)
 
 To run from CLI after building peng, run `peng-canvas` with optional flags `--help`, and `--setupenv`
+
+Where `--setupenv` will run you through the installation process of importing your Canvas API Token.
+
+## Using the Stanford Moss Integration Tool (moss)
+
+To run the Standford Moss similarity checker through PengTest, invoke command `moss` with required positional argument of language, and optional (assumes local ./basefiles and ./submissions if not provided) `basefiles` (code provided to students) and `submissions` (student submissions)
+
+Includes optional flag `--setupenv`
 
 Where `--setupenv` will run you through the installation process of importing your Canvas API Token.
 
