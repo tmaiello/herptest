@@ -291,10 +291,15 @@ def main():
     PRODUCTION_TOKEN_TYPE = "TOKEN"
     BETA_TOKEN_TYPE = "BETA_TOKEN"
 
+    # Parse arguments
     arg_config = parse_arguments()
     if arg_config.setupenv == True:
         env_setup()
 
+    # Choosing between live and beta canvas, then creating appropriate canvas util driver object
+
+    # CanvasUtil object, driver object for functionality,
+    # if you want beta or production, a different .env path, or token, enter here into constructor.
     canvas_type = input("Would you like to upload to Live Canvas or Canvas Beta? {Choices: Live, Beta} ")
     if canvas_type == "Live" or canvas_type == "live":
         canvas_util = CanvasUtil(PRODUCTION_URL,DOT_ENV_PATH,PRODUCTION_TOKEN_TYPE)
@@ -307,9 +312,7 @@ def main():
         print("└─> exiting with error")
         exit(-1)
 
-
-    # CanvasUtil object, driver object for functionality, if you want beta or production, a different .env path, or token, enter here into constructor.
-
+    # try to retrieve courses from canvas API, will gracefully fail if API key not present or invalid
     try:
         courses = canvas_util.get_courses_this_semester()
     except:
@@ -317,14 +320,18 @@ def main():
         print("| Hint: try using --setupenv to set up your environment variables.")
         print("└─> exiting with error")
         exit(-1)
+    # gets list of all courses
     course_names = list(courses.keys())
 
+    # You *must* be of role teacher to see your courses, this can be changed if different roles needed
     print("-=- Listing all courses for which you have role: Teacher in current enrollemnt period -=-")
     temp_count = 0
+    # iterate over list of courses and print of the choices
     for name in course_names:
         print(f"{temp_count}. {name}")
         temp_count = temp_count + 1
     
+    # choosing a course from the list
     print("-=- Which course are you choosing? {Enter Number, 0 indexed} -=-")
     index_choice = input()
     try:
@@ -334,13 +341,12 @@ def main():
         print("└─> exiting with error")
         exit(-1)
 
-    print("| loading course information, this may take a few seconds...")
-
+    # find course id information and fetch sections
+    print("| loading course information, this may take a few seconds...")    
     section_ids = canvas_util.get_section_ids(course_id)
     print(f"└─> {len(section_ids)} section(s) found")
 
-    #canvas_util.get_assignment_list(course_id)
-
+    # enter a portion of all of the assignment name for a class assignment
     print("-=- Type some part of the title of your assignment - if it's \"Python Pitches\", type \"Pitches\" -=-")
     try:
         assignment_name = input()
@@ -351,15 +357,12 @@ def main():
         exit(-1)
     print(f"└─> Found assignment ID: {assignment_id}")
 
-    # print("-=- Type the ID of your assignment. Found in Canvas URL after assignments/ -=-")
-    # assignment_id = canvas_util.get_assignment_by_id(course_id,assignment_id=4346021)
-    # print(f"└─> Found assignment ID: {assignment_id}")
-
-
+    # fetch all student ids via sections in a course
     user_ids = {}
     for section in section_ids:
         canvas_util.get_student_ids_by_section(course_id, section, user_ids)
 
+    # input CSV path that you with to upload
     print("-=- Please input path of CSV file: {If on WSL, remember to use mounted drives and linux formatted paths} -=-")
     csv_path = input()
     try:
@@ -369,6 +372,7 @@ def main():
         print("└─> exiting with error")
         exit(-1)
 
+    # try to create rubric and load rubric formatting
     try:
         rubric_id = canvas_util.get_rubric_id(course_id, assignment_id)
         rubric_format = canvas_util.generate_rubric(course_id, rubric_id)
@@ -377,13 +381,14 @@ def main():
         print("└─> exiting with error")
         exit(-1)
     
+    # try to upload grades via API
     try:
         canvas_util.upload_grades(course_id, user_ids, assignment_id, students_from_file, rubric_format)
     except:
         print("| Rubric Upload operation failed")
         print("└─> exiting with error")
         exit(-1)
-
+    
     print("-=- Rubric Upload Complete. Shutting down -=-")
 
 if __name__ == "__main__":
