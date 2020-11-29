@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 
 # Version Number for Release
-VERSION_NUM = '0.9.9.4'
+VERSION_NUM = '0.9.9.5'
 
 # Environment handling for moss env setup. Uses MossEnvWrapper
 def env_setup():

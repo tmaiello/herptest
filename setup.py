@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='pengtest',
-    version='0.9.9.4',
+    version='0.9.9.5',
     packages=['pengtest',],
     url='https://github.com/tmaiello/herptest',
     license='GPL 3',

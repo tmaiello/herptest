@@ -11,7 +11,7 @@ import argparse
 from pengtest.env_wrapper import EnvWrapper
 
 # Version Number for Release
-VERSION_NUM = '0.9.9.4'
+VERSION_NUM = '0.9.9.5'
 
 # handle command line args
 def parse_arguments():

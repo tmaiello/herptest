@@ -57,7 +57,7 @@ def createSplash():
 def createStatusBar(window):
     #creates the global status bar at the bottom of the ui
     status = QtWidgets.QStatusBar()
-    statusMessage = QtWidgets.QLabel("PengTest - GUI (peng-gui): Version 1.0.0")
+    statusMessage = QtWidgets.QLabel("PengTest - GUI (peng-gui): Version 0.9.9.5")
     status.addWidget(statusMessage)
     status.setStyleSheet("background-color: #83d3f7")
     window.setStatusBar(status)
