@@ -9,6 +9,12 @@ Team Peng - CIS 4930 - Python Term Project
 - Gerard Avecilla
 ```
 
+GitHub Link: https://github.com/tmaiello/herptest
+
+PIP Installation Command: `python3 -m pip install .`
+
+PIP Installation name: `pengtest`
+
 This test suite it built to facilitate testing of student projects by teachers according to a predefined specification.
 
 This package includes five primary tools:
