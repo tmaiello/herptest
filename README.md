@@ -9,7 +9,7 @@ Team Peng - CIS 4930 - Python Term Project
 - Gerard Avecilla
 ```
 
-GitHub Link: https://github.com/tmaiello/herptest
+GitHub Link: https://github.com/tmaiello/pengtest
 
 PIP Installation Command: `python3 -m pip install .`
 
