@@ -319,14 +319,14 @@ def main():
         print("└─> exiting with error")
         exit(-1)
     # gets list of all courses
-    course_names = courses
+    course_names = list(courses.keys())
     print(course_names)
     # You *must* be of role teacher to see your courses, this can be changed if different roles needed
     print("-=- Listing all courses for which you have role: Teacher in current enrollemnt period -=-")
     temp_count = 0
     # iterate over list of courses and print of the choices
-    for name in course_names:
-        print(f"{temp_count}. {name} - {course_names[name]}")
+    for name in courses:
+        print(f"{temp_count}. {name} - {courses[name]}")
         temp_count = temp_count + 1
     
     # choosing a course from the list
