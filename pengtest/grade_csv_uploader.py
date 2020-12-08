@@ -72,28 +72,26 @@ class CanvasUtil:
         """
         Get dictionary (name -> id) of courses in this semester
         """
-        response = requests.get(f"{self.canvas_api_url}/courses?enrollment_type=teacher&include=items&per_page=1000", auth=BearerAuth(self.token)) #enrollment_type changed from teacher
-        # print(response.json())
+        response = requests.get(f"{self.canvas_api_url}/courses?enrollment_type=teacher&include=items&per_page=1000", auth=BearerAuth(self.token))
         content = response.json()
-        try:
-            enrollment_term_id = content[0]["enrollment_term_id"]
-        except:
-            #if there are no valid courses, return an empty dict
-            return {}
-        for course in content:  # Find the current enrollment term
-            try:
-                enrollment_term_id = max(enrollment_term_id, int(course["enrollment_term_id"]))
-            except:
-                pass
+        # try:
+        #     enrollment_term_id = content[0]["enrollment_term_id"]
+        # except:
+        #     #if there are no valid courses, return an empty dict
+        #     return {}
+        # for course in content:  # Find the current enrollment term
+        #     try:
+        #         enrollment_term_id = max(enrollment_term_id, int(course["enrollment_term_id"]))
+        #     except:
+        #         pass
 
-        # Filter for courses in the current term
+        # Filter for courses
         result = {}
         for course in content:
             try:
-                if course["enrollment_term_id"] == enrollment_term_id:
-                    result[course["name"]] = int(course["id"])
+                result[course["name"]] = int(course["id"])
                 ## ----------TEMPORARY FOR TESTING PURPOSES---------------
-                elif course["course_code"] == "BLANCHARD":
+                if course["course_code"] == "BLANCHARD":
                     result[course["name"]] = int(course["id"])
             except:
                 pass
@@ -321,14 +319,14 @@ def main():
         print("└─> exiting with error")
         exit(-1)
     # gets list of all courses
-    course_names = list(courses.keys())
-
+    course_names = courses
+    print(course_names)
     # You *must* be of role teacher to see your courses, this can be changed if different roles needed
     print("-=- Listing all courses for which you have role: Teacher in current enrollemnt period -=-")
     temp_count = 0
     # iterate over list of courses and print of the choices
     for name in course_names:
-        print(f"{temp_count}. {name}")
+        print(f"{temp_count}. {name} - {course_names[name]}")
         temp_count = temp_count + 1
     
     # choosing a course from the list
